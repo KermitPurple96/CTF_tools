@@ -3,6 +3,7 @@
 A small set of tools developed to pass my OSCP, this set consists of:
 Temporary HTTP server and reconnaissance scripts in bash and PowerShell, which work together to facilitate reconnaissance and logistics tasks during machines and CTFs resolution.
 
+pip install pyftpdlib pyopenssl colorama 
 
 ## Usage
 
