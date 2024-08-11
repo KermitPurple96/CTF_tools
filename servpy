@@ -449,7 +449,7 @@ parser.add_argument('-u', '--user', type=str, help="Username for authentication 
 parser.add_argument('-f', '--file', type=str, default="<file>", help="Path to a file to be used by the server")
 parser.add_argument('-i', '--interface', type=str, default="eth0", help="Interface IP")
 parser.add_argument('-pw', '--password', type=str, help="Password for authentication (optional)")
-parser.add_argument('-t', '--transfer', action='store_true', help="Transfer examples")
+parser.add_argument('-t', '--transfer', action='store_true', help="Just print file transfer examples")
 
 args = parser.parse_args()
 
