@@ -2,8 +2,8 @@
 
 A small set of python tools developed to pass OSCP, this set consists of 3 scripts for downloading tools (toolpy), generating payloads for reverse shells (shellpy) and transferring files (servpy)
 
+## Install
 pip install pyftpdlib pyopenssl colorama psutil
-
 
 ## Usage
 
