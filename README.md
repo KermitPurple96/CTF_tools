@@ -4,8 +4,8 @@ A small set of python tools developed to pass OSCP, this set consists of 3 scrip
 
 - Toolpy for easy & fast downloading tools
 - Shellpy to generate payloads for reverse shells, optionally obfuscated to evade antivirus and in macro format for malicious documents
+  (Shellpy can be found here --> https://github.com/KermitPurple96/Shellpy)
 - Servpy to start services to transfer files via smb, ftp, http, https, scp, nc & socat
-(Shellpy can be found here --> https://github.com/KermitPurple96/Shellpy)
 - recon.ps1 to assist in the windows privilege escalation process
 - recon.sh to assist in the linux privilege escalation process
 
