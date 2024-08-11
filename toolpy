@@ -7,10 +7,6 @@ import shutil
 import sys
 
 
-
-
-
-
 def download_kerbrute(platform, arch):
 
     if platform == "linux":
@@ -97,10 +93,6 @@ def download_linux_exploit_suggester2():
     except subprocess.CalledProcessError as e:
         print(f"Error during download: {e}")
 
-
-
-
-
 def download_rpcenum():
     url = "https://raw.githubusercontent.com/KermitPurple96/rpcenum/master/rpcenum.sh"
     output_file = "rpcenum.sh"
@@ -142,13 +134,6 @@ def download_sharphound():
     subprocess.run(["wget", "https://github.com/BloodHoundAD/SharpHound/releases/download/v2.5.1/SharpHound-v2.5.1.zip"], check=True)
     subprocess.run(["unzip", "SharpHound-v2.5.1.zip"], check=True)
 
-
-
-
-
-
-
-
 def download_dnstools():
 
     subprocess.run(["pip", "install", "git+https://github.com/dirkjanm/adidnsdump#egg=adidnsdump"], check=True)
@@ -156,9 +141,6 @@ def download_dnstools():
     subprocess.run(["wget", "https://raw.githubusercontent.com/dirkjanm/krbrelayx/master/dnstool.py"], check=True)
     subprocess.run(["wget", "https://raw.githubusercontent.com/dirkjanm/krbrelayx/master/krbrelayx.py"], check=True)
     subprocess.run(["wget", "https://raw.githubusercontent.com/dirkjanm/krbrelayx/master/printerbug.py"], check=True)
-
-
-
 
 def download_sprying():
 
@@ -168,17 +150,8 @@ def download_sprying():
 def download_domain_password_spray():
     subprocess.run(["wget", "https://raw.githubusercontent.com/dafthack/DomainPasswordSpray/master/DomainPasswordSpray.ps1"], check=True)
 
-
-
-
-
-
 def download_pkinit():
     subprocess.run(["git", "clone", "https://github.com/dirkjanm/PKINITtools"], check=True)
-    
-
-
-
 
 def download_maz_windows_binaries():
     subprocess.run(["wget", "https://github.com/maaaaz/impacket-examples-windows/releases/download/v0.9.17/impacket-examples-windows-v0.9.17.zip"], check=True)
@@ -197,9 +170,6 @@ def download_nc_exe():
     subprocess.run(["wget", "https://eternallybored.org/misc/netcat/netcat-win32-1.12.zip"], check=True)
     subprocess.run(["unzip", "netcat-win32-1.12.zip"], check=True)
     subprocess.run(["rm", "netcat-win32-1.12.zip"], check=True)
-
-
-
 
 def download_powersharppack():
     subprocess.run(["wget", "https://raw.githubusercontent.com/S3cur3Th1sSh1t/PowerSharpPack/master/PowerSharpPack.ps1"], check=True)
@@ -222,14 +192,10 @@ def download_powercat():
     subprocess.run(["wget", "https://raw.githubusercontent.com/besimorhino/powercat/master/powercat.ps1"], check=True)
 
 def download_nishang():
-    subprocess.run(["git", "clone", "https://github.com/samratashok/nishang"], check=True)
+    subprocess.run(["wget", "https://raw.githubusercontent.com/samratashok/nishang/master/Shells/Invoke-PowerShellTcp.ps1"], check=True)
 
 def download_invoke_thehash():
     subprocess.run(["git", "clone", "https://github.com/Kevin-Robertson/Invoke-TheHash"], check=True)
-
-
-
-
 
 def download_windows_exploit_suggester():
     url = "https://raw.githubusercontent.com/AonCyberLabs/Windows-Exploit-Suggester/master/windows-exploit-suggester.py"
@@ -296,10 +262,6 @@ def download_mimikatz(arch):
         print(f"Error during download or extraction: {e}")
     except FileNotFoundError as e:
         print(f"File not found error: {e}")
-
-
-
-
 
 
 def download_ligolo(platform, arch):
@@ -370,7 +332,6 @@ def download_socat(platform, arch):
         print(f"Error during download or extraction: {e}")
 
 
-
 def download_sharpwmi():
     subprocess.run(["wget", "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/SharpWMI.exe"], check=True)
 
@@ -384,12 +345,6 @@ def download_rubeus():
 def download_certify():
     subprocess.run(["wget", "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/Certify.exe"], check=True)
 
-
-
-
-
-
-
 def download_poshadcs():
     subprocess.run(["wget", "https://raw.githubusercontent.com/cfalta/PoshADCS/master/ADCS.ps1"], check=True)
 
@@ -398,8 +353,6 @@ def download_adcspwn():
 
 def download_adcskiller():
     subprocess.run(["git", "clone", "https://github.com/grimlockx/ADCSKiller"], check=True)
-
-
 
 def download_powersccm():
     subprocess.run(["wget", "https://raw.githubusercontent.com/PowerShellMafia/PowerSCCM/master/PowerSCCM.ps1"], check=True)
@@ -433,7 +386,6 @@ def recon(platform, arch):
     download_sharpview()
     download_powerview()
     download_sharphound()
-
 
 
 def privesc(platform, arch):
@@ -590,8 +542,6 @@ def main():
         download_rubeus()
     elif args.tool == "certiy":
         download_certify()
-
-
 
 
 if __name__ == "__main__":
