@@ -1,10 +1,18 @@
 # OSCP python support tools
 
-A small set of python tools developed to pass OSCP, this set consists of 3 scripts for downloading tools (toolpy), generating payloads for reverse shells (shellpy) and transferring files (servpy).
-Shellpy can be found here --> https://github.com/KermitPurple96/Shellpy
+A small set of python tools developed to pass OSCP, this set consists of 3 scripts:
+
+- Toolpy for easy & fast downloading tools
+- Shellpy to generate payloads for reverse shells, optionally obfuscated to evade antivirus and in macro format for malicious documents
+- Servpy to start services to transfer files via smb, ftp, http, https, scp, nc & socat
+(Shellpy can be found here --> https://github.com/KermitPurple96/Shellpy)
+- recon.ps1 to assist in the windows privilege escalation process
+- recon.sh to assist in the linux privilege escalation process
 
 ## Install
 pip install pyftpdlib pyopenssl colorama psutil
+git clone https://github.com/KermitPurple96/OSCP-PythonSupportTools
+git clone https://github.com/KermitPurple96/Shellpy
 
 ## Usage
 
@@ -12,41 +20,12 @@ pip install pyftpdlib pyopenssl colorama psutil
 ```bash
 toolpy -t mimikatz -a x64  
 ```
-```bash
--h, --help 
--t {tool}
--s {windows,linux}, --system {windows,linux}
--a {x86,x64}, --arch {x86,x64}
-```
+![toolpy](https://github.com/user-attachments/assets/048e544d-112a-40a5-972b-59262bc08e64)
+
 
 2. Run a server
-```bash
-usage: servpy2 [-h] [-p PORT] [-u USER] [-f FILE] [-i INTERFACE] [-pw PASSWORD] [-t]
-               {http,ftp,smb,https,ftps,socat,nc,scp,servers,paths}
+![servpy](https://github.com/user-attachments/assets/833c27d0-c865-4cfc-8c23-9fb611bbb768)
 
-Simple multi-service server with optional authentication
-
-positional arguments:
-  {http,ftp,smb,https,ftps,socat,nc,scp,servers,paths}
-                        Type of service to run (http, ftp, smb)
-
-options:
-  -h, --help            show this help message and exit
-  -p PORT, --port PORT  Port number to use (default: 80)
-  -u USER, --user USER  Username for authentication (optional)
-  -f FILE, --file FILE  Path to a file to be used by the server
-  -i INTERFACE, --interface INTERFACE
-                        Interface IP
-  -pw PASSWORD, --password PASSWORD
-                        Password for authentication (optional)
-  -t, --transfer        Just print file transfer examples
-
-Examples:
-     servpy https -p 8080 -u kermit -pw Password123 -f mimikatz.exe
-     servpy smb -u kermit -pw kermit123 -f mimikatz.exe -t
-     servpy servers - Show server one liners
-     servpy paths - Recomended paths for downloads
-```
 
 3. Load the script on Target Machine
 
