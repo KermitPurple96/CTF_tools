@@ -10,7 +10,7 @@ pip install pyftpdlib pyopenssl colorama psutil
 
 1. Run the http temp server on Kali
 ```bash
-python3 ./httpTempServ.py
+servpy [-h] [-p PORT] [-u USER] [-f FILE] [-i INTERFACE] [-pw PASSWORD] {http,ftp,smb,https,ftps}
 ```
 
 2. Load the script on Target Machine
