@@ -21,12 +21,32 @@ toolpy -t mimikatz -a x64
 
 2. Run a server
 ```bash
-servpy [-h] [-p PORT] [-u USER] [-f FILE] [-i INTERFACE] [-pw PASSWORD] {http,ftp,smb,http,https,ftps,scp,socat,nc}
-servpy https -p 8080 -u kermit -pw Password123 -f mimikatz.exe
-servpy smb -u kermit -pw kermit123 -f mimikatz.exe -t
--t: Print commands without starting any service
-servpy servers: Show server one liners
-servpy paths: Recomended paths for downloads
+usage: servpy2 [-h] [-p PORT] [-u USER] [-f FILE] [-i INTERFACE] [-pw PASSWORD] [-t]
+               {http,ftp,smb,https,ftps,socat,nc,scp,servers,paths}
+
+Simple multi-service server with optional authentication
+
+positional arguments:
+  {http,ftp,smb,https,ftps,socat,nc,scp,servers,paths}
+                        Type of service to run (http, ftp, smb)
+
+options:
+  -h, --help            show this help message and exit
+  -p PORT, --port PORT  Port number to use (default: 80)
+  -u USER, --user USER  Username for authentication (optional)
+  -f FILE, --file FILE  Path to a file to be used by the server
+  -i INTERFACE, --interface INTERFACE
+                        Interface IP
+  -pw PASSWORD, --password PASSWORD
+                        Password for authentication (optional)
+  -t, --transfer        Just print transfer examples
+
+Examples:
+     servpy https -p 8080 -u kermit -pw Password123 -f mimikatz.exe
+     servpy smb -u kermit -pw kermit123 -f mimikatz.exe -t
+     -t: Print commands without starting any service
+     servpy servers - Show server one liners
+     servpy paths - Recomended paths for downloads
 ```
 
 3. Load the script on Target Machine
