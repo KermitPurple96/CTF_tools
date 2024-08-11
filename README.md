@@ -1,7 +1,6 @@
-# OSCP Aux Recon Tools
+# OSCP python support tools
 
-A small set of tools developed to pass my OSCP, this set consists of:
-Temporary HTTP server and reconnaissance scripts in bash and PowerShell, which work together to facilitate reconnaissance and logistics tasks during machines and CTFs resolution.
+A small set of python tools developed to pass OSCP, this set consists of 3 scripts for downloading tools (toolpy), generating payloads for reverse shells (shellpy) and transferring files (servpy)
 
 pip install pyftpdlib pyopenssl colorama psutil
 
