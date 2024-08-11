@@ -1,6 +1,7 @@
 # OSCP python support tools
 
-A small set of python tools developed to pass OSCP, this set consists of 3 scripts for downloading tools (toolpy), generating payloads for reverse shells (shellpy) and transferring files (servpy)
+A small set of python tools developed to pass OSCP, this set consists of 3 scripts for downloading tools (toolpy), generating payloads for reverse shells (shellpy) and transferring files (servpy).
+Shellpy can be found here --> https://github.com/KermitPurple96/Shellpy
 
 ## Install
 pip install pyftpdlib pyopenssl colorama psutil
