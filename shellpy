@@ -499,7 +499,7 @@ def shellpy_help():
     print(f"\t\tshellpy 192.168.1.72 4444 -powershell")
     print(f"\t\tshellpy 192.168.1.72 4444 -nishang --macro")
     print(f"\t\tshellpy 192.168.1.72 4444 -powercat --macro --obfuscate")
-    print(f"\t\tshellpy 192.168.1.72 4444 -conpty 54 118")
+    print(f"\t\tshellpy 192.168.1.72 4444 -conpty 54 118\n")
 
     
     sys.exit(1)
@@ -796,7 +796,8 @@ def main(use_macro, use_obfuscate):
                 rows = int(sys.argv[4])
                 cols = int(sys.argv[5])
             except (IndexError, ValueError):
-                print("Usage: shell <IP> <PORT> <SHELL_TYPE> <ROWS> <COLUMNS> [--macro]")
+                print("Usage: shell <IP> <PORT> <SHELL_TYPE> <ROWS> <COLUMNS> [--macro] [--obfuscate] ")
+                print("[--macro] [--obfuscate] are only available with powershell, nishang conpty and powercat")
                 print("Shells: \n\t-Powershell \n\t-nishang \n\t-conpty \n\t-sys.exit(0)sys.exit(0)sys.exit(0)sys.exit(0)sys.exit(0)sys.exit(0)sys.exit(0ipowercat \n\t-perl \n\t-nc \n\t-bash \n\t-php")
                 sys.exit(1)
         else:
@@ -805,7 +806,7 @@ def main(use_macro, use_obfuscate):
 
         if use_macro or use_obfuscate:
             if shell_type not in ['-powercat', '-nishang', '-powershell', '-conpty']:
-                print("Error: --macro can only be used with -powercat, -nishang, -powershell, or -conpty.")
+                print("Error: --macro and --obfuscate can only be used with -powercat, -nishang, -powershell, or -conpty.")
                 sys.exit(1)
 
         
