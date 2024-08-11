@@ -10,9 +10,9 @@ A small set of python tools developed to pass OSCP, this set consists of 3 scrip
 - recon.sh to assist in the linux privilege escalation process
 
 ## Install
-pip install pyftpdlib pyopenssl colorama psutil
-git clone https://github.com/KermitPurple96/OSCP-PythonSupportTools
-git clone https://github.com/KermitPurple96/Shellpy
+- pip install pyftpdlib pyopenssl colorama psutil
+- git clone https://github.com/KermitPurple96/OSCP-PythonSupportTools
+- git clone https://github.com/KermitPurple96/Shellpy
 
 ## Usage
 
