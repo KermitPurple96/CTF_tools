@@ -39,12 +39,11 @@ options:
                         Interface IP
   -pw PASSWORD, --password PASSWORD
                         Password for authentication (optional)
-  -t, --transfer        Just print transfer examples
+  -t, --transfer        Just print file transfer examples
 
 Examples:
      servpy https -p 8080 -u kermit -pw Password123 -f mimikatz.exe
      servpy smb -u kermit -pw kermit123 -f mimikatz.exe -t
-     -t: Print commands without starting any service
      servpy servers - Show server one liners
      servpy paths - Recomended paths for downloads
 ```
