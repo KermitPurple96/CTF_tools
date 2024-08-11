@@ -8,7 +8,7 @@ pip install pyftpdlib pyopenssl colorama psutil
 
 ## Usage
 
-1. Download tool
+1. Download tools
 ```bash
 toolpy -t mimikatz -a x64  
 ```
@@ -19,7 +19,7 @@ toolpy -t mimikatz -a x64
 -a {x86,x64}, --arch {x86,x64}
 ```
 
-2. Run the server
+2. Run a server
 ```bash
 servpy [-h] [-p PORT] [-u USER] [-f FILE] [-i INTERFACE] [-pw PASSWORD] {http,ftp,smb,http,https,ftps,scp,socat,nc}
 servpy https -p 8080 -u kermit -pw Password123 -f mimikatz.exe
