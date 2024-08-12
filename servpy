@@ -285,28 +285,28 @@ def print_transfer_instructions():
 
     elif SERVICE == 'http':
 
-        print(f"Download")
+        print(f"\nDownload\n")
         if USERNAME and PASSWORD:
-            print(f"curl -u {USERNAME}:{PASSWORD} http://{IP}:{PORT}/{FILE} -o {FILE}")
-            print(f"certutil.exe -f -urlcache -split http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE}")
-            print(f"iwr -uri http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE} -OutFile {FILE}")
-            print(f"iwr -UseBasicParsing http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE}")
+            print(f"\tcurl -u {USERNAME}:{PASSWORD} http://{IP}:{PORT}/{FILE} -o {FILE}")
+            print(f"\tcertutil.exe -f -urlcache -split http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE}")
+            print(f"\tiwr -uri http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE} -OutFile {FILE}")
+            print(f"\tiwr -UseBasicParsing http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE}")
         else:
-            print(f"curl http://{IP}:{PORT}/{FILE} -o {FILE}")
-            print(f"certutil.exe -f -urlcache -split http://{IP}:{PORT}/{FILE}")
-            print(f"iwr -uri http://{IP}:{PORT}/{FILE} -OutFile {FILE}")
-            print(f"iwr -UseBasicParsing http://{IP}:{PORT}/{FILE}")
+            print(f"\tcurl http://{IP}:{PORT}/{FILE} -o {FILE}")
+            print(f"\tcertutil.exe -f -urlcache -split http://{IP}:{PORT}/{FILE}")
+            print(f"\tiwr -uri http://{IP}:{PORT}/{FILE} -OutFile {FILE}")
+            print(f"\tiwr -UseBasicParsing http://{IP}:{PORT}/{FILE}")
 
-        print("Upload")
+        print("\nUpload\n")
         if USERNAME and PASSWORD:
-            print(f"curl -u {USERNAME}:{PASSWORD} -X POST -F 'file=@{FILE}' http://{IP}:{PORT}/{FILE}")
-            print(f"iwr -uri http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE} -Method Post -InFile {FILE} -UseBasicParsing")
-            print(f"curl -u {USERNAME}:{PASSWORD} -X POST -F \"file=@{FILE}\" http://{IP}:{PORT}/upload")
+            print(f"\tcurl -u {USERNAME}:{PASSWORD} -X POST -F 'file=@{FILE}' http://{IP}:{PORT}/{FILE}")
+            print(f"\tiwr -uri http://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE} -Method Post -InFile {FILE} -UseBasicParsing")
+            print(f"\tcurl -u {USERNAME}:{PASSWORD} -X POST -F \"file=@{FILE}\" http://{IP}:{PORT}/upload")
         else:
-            print(f"curl -X POST -F 'file=@{FILE}' http://{IP}:{PORT}/{FILE}")
-            print(f"iwr -uri http://{IP}:{PORT}/{FILE} -Method Post -InFile {FILE} -UseBasicParsing")
-            print(f"curl -X POST -F \"file=@{FILE}\" http://{IP}:{PORT}/upload")
-        print(f"wget http://{IP}:{PORT}/{FILE} --method=POST --body-file={FILE} -OutFile response.txt")
+            print(f"\tcurl -X POST -F 'file=@{FILE}' http://{IP}:{PORT}/{FILE}")
+            print(f"\tiwr -uri http://{IP}:{PORT}/{FILE} -Method Post -InFile {FILE} -UseBasicParsing")
+            print(f"\tcurl -X POST -F \"file=@{FILE}\" http://{IP}:{PORT}/upload")
+            print(f"\twget http://{IP}:{PORT}/{FILE} --method=POST --body-file={FILE} -OutFile response.txt")
 
 
     elif SERVICE == 'https':
@@ -438,7 +438,6 @@ def run_service():
 
 # Suppress deprecated cgi warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="cgi")
-os.system("clear")
 
 
 # Argument parser setup
