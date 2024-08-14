@@ -2,13 +2,12 @@
 
 A small set of python tools developed to pass OSCP, this set consists of 3 scripts:
 
-- Toolpy for easy & fast downloading tools
-- Shellpy to generate payloads for reverse shells, optionally obfuscated to evade antivirus and in macro format for malicious documents
-  (Shellpy can be found here --> https://github.com/KermitPurple96/Shellpy)
-- Servpy to start services to transfer files via smb, ftp, http, https, scp, nc & socat
+- Servpy to start services to transfer files via smb, ftp, http, https, scp, nc or socat & easy downloading tools
 - recon.ps1 to assist in the windows privilege escalation process
 - recon.sh to assist in the linux privilege escalation process
-
+- Shellpy to generate payloads for reverse shells, optionally obfuscated to evade antivirus and in macro format for malicious documents
+  (Shellpy can be found here --> https://github.com/KermitPurple96/Shellpy)
+  
 ## Install
 - pip install pyftpdlib pyopenssl colorama psutil
 - git clone https://github.com/KermitPurple96/OSCP-PythonSupportTools
