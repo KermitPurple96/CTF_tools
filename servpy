@@ -1,29 +1,33 @@
 #!/usr/bin/python3
 
-
-
-import os
-import sys
-import base64
-import signal
-import subprocess
-import warnings
-import argparse
-import textwrap
-import ssl
-from OpenSSL import SSL
-import psutil
-import socket
+from pwn import *
 import http.server
 import socketserver
 import threading
-from pwn import *
-from pwn import log, context
+import os
+import sys
+
+import base64
+import os
+import signal
+import sys
+import subprocess
+import warnings
+import argparse
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 from pyftpdlib.handlers import TLS_FTPHandler
 from colorama import Fore, Style, init
+import textwrap
+import ssl
+from OpenSSL import SSL
+import psutil
+import socket
+import shutil
+import socket
+from pwn import log, context
+
 
 context.log_level = 'info'  # Configura el nivel de log de pwntools
 
@@ -691,6 +695,9 @@ def download_windows_exploit_suggester():
     except subprocess.CalledProcessError as e:
         print(f"Error during download: {e}")      
 
+def download_seatbelt():
+    subprocess.run(["wget", "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/Seatbelt.exe"], check=True)
+
 def download_jaws_enum():
     subprocess.run(["wget", "https://raw.githubusercontent.com/411Hall/JAWS/master/jaws-enum.ps1"], check=True)
 
@@ -838,7 +845,6 @@ def download_certify():
 
 
 
-
 def download_poshadcs():
     subprocess.run(["wget", "https://raw.githubusercontent.com/cfalta/PoshADCS/master/ADCS.ps1"], check=True)
 
@@ -855,6 +861,43 @@ def download_powersccm():
 
 def download_sharpsccm():
     subprocess.run(["wget", "https://github.com/Mayyhem/SharpSCCM/releases/download/main/SharpSCCM.exe"], check=True)
+
+
+
+def download_runascs():
+    subprocess.run(["wget", "https://github.com/antonioCoco/RunasCs/releases/download/v1.5/RunasCs.zip"], check=True)
+    subprocess.run(["unzip", "RunasCs.zip"], check=True)
+
+
+def download_runasps1():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/antonioCoco/RunasCs/master/Invoke-RunasCs.ps1"], check=True)
+
+
+def download_peas(platform, arch):
+    
+    if platform == "windows":
+        subprocess.run(["wget", "https://github.com/peass-ng/PEASS-ng/releases/download/20240818-ea81ae32/winPEASany.exe"], check=True)
+        if arch == "x64":
+            subprocess.run(["wget", "https://github.com/peass-ng/PEASS-ng/releases/download/20240818-ea81ae32/winPEASx64.exe"], check=True)
+        elif arch == "x86":
+            subprocess.run(["wget", "https://github.com/peass-ng/PEASS-ng/releases/download/20240818-ea81ae32/winPEASx86.exe"], check=True)
+
+
+    elif platform == "linux":
+        subprocess.run(["wget", "https://github.com/peass-ng/PEASS-ng/releases/download/20240818-ea81ae32/linpeas.sh"], check=True)
+        if arch == "x86":
+            subprocess.run(["wget", "https://github.com/peass-ng/PEASS-ng/releases/download/20240818-ea81ae32/linpeas_linux_386"], check=True)
+
+        elif arch == "x64":
+            subprocess.run(["wget", "https://github.com/peass-ng/PEASS-ng/releases/download/20240818-ea81ae32/linpeas_linux_amd64"], check=True)
+
+        else:
+            print("Unsupported platform specified.")
+            return
+
+
+
+
 
 def sccm_hunter():
     subprocess.run(["wget", "https://github.com/garrettfoster13/sccmhunter/archive/refs/tags/v.1.0.5.zip"], check=True)
@@ -873,7 +916,7 @@ def sccm():
     sccm_hunter()
 
 
-def discovery(platform, arch):
+def ad(platform, arch):
 
     download_rpcenum()
     download_pywerview()
@@ -1035,9 +1078,65 @@ def tool(command):
             download_certify()
         case "recon":
             download_recon()
+        case "peas":
+            download_peas(platform, arch)
+        case "seatbelt":
+            download_seatbelt()
+        case "runascs":
+            download_runascs()
+        case "runasps1":
+            download_runasps1()
+
         case _:
             print(f"[!] La herramienta '{tool_name}' no está reconocida.")
 
+
+def help():
+    #print(f"\t [+] download a tool from github: tool <tool name>")
+    log.info('\nDownload a tool from github: \ttool <tool name>')
+    log.info('List the available tools: \t tool help\n')
+    log.info("Upload commands examples: \tupload <http/https/smb/ftp/ftps/scp/socat/nc> <ip> <port> <file> [user] [password]")
+    log.info("Start or stop a service \t<http/https/smb/ftp/ftps> <up/down> [port]")
+    print(f"\nExamples:")
+    print(f"\ttool powercat")
+    print(f"\tupload http 127.0.0.1 80 mimikatz.exe")
+    print(f"\thttp up 80")
+    print(f"\tsmb down\n")
+    interactive_console()
+
+def help_tools():
+
+    log.info("Download pivoting tools: tool pivoting")
+    log.info("Download windows privilege escalation: tool windows")
+    log.info("Download linux privilege escalation: tool linux")
+    log.info("Download AD offensive tools: tool ad")
+    log.info("Download ADCS offensive tools: tool adcs")
+    log.info("Download SCCM offensive tools: tool sccm\n")
+
+
+
+    choices=[
+        "checker", "linenum", "pywerview", "socat", "rpcenum", "mimikatz", "kerbrute",
+        "impacket", "suggester", "suggester2", "privesc", "dnstools", "sprying", "pkinit", 
+        "adcskiller", "sccme_hunter", "maz_windows_binaries", "sysinternals", 
+        "sharpcollection", "nc_exe", "powersharppack", "powerupsql", 
+        "invoke_psexec", "invoke_conptyshell", "conptyshell_exe", 
+        "powercat", "nishang", "invoke_thehash", "jaws_enum", "powerless",
+        "sherlock", "Privesccheck", "powerup", "kekeo", "lazagne", "adpeas",
+        "adpeas-light", "sharpview", "powerview", "sharphound", "invoke_psexec",
+        "password_spray", "ligolo", "poshadcs", "adcspwn",
+        "powersccm", "sharpsccm","sharpwmi","sharpup","rubeus","certify",
+        "peas", "seatbelt", "runascs", "runasps1"
+
+    ]
+
+    log.info("available tools:\n")
+    print(", ".join(choices))
+
+    log.info("\nto download: tool <name> [windows|linux] [x64|x86]\n")
+
+
+    interactive_console()
 
 def handle_command(command):
     global http_thread, http_server, p1, stop_flag
@@ -1049,16 +1148,8 @@ def handle_command(command):
 
     first_word, second_word = parts[0], parts[1]
 
-    print(first_word)
-    print(second_word)
 
-    if first_word == "upload":
-        upload(service, username, password, ip, port, file)
-
-    if first_word == "download":
-        upload(service, username, password, ip, port, file)
-
-    elif first_word == "http":
+    if first_word == "http":
         if second_word == "up":
             if len(parts) > 2:
                 try:
@@ -1109,18 +1200,26 @@ def interactive_console():
         command = input("[>] ").strip()
         if not command:
             continue
-        
-        # Obtener la primera palabra del comando
-        first_word = command.split()[0]
+       
+        parts = command.split()
+        if len(parts) < 2:
+            help()
+
+        first_word, second_word = parts[0], parts[1]
+
+
 
         # Definir las palabras clave para cada función
-        service_commands = ['http', 'https', 'smb', 'ftp', 'ftps', 'socat', 'nc', 'scp']
+        service_commands = ['http', 'https', 'smb', 'ftp', 'ftps']
         if first_word in service_commands:
             handle_command(command)
         elif first_word == 'tool':
-            tool(command)
+            if second_word == 'help':
+                help_tools()
+            else:
+                tool(command)
         elif first_word == 'help':
-            help(command)
+            help()
         elif first_word == 'upload':
             upload(command)
         elif first_word == 'exit':
@@ -1129,17 +1228,6 @@ def interactive_console():
         else:
             print(f"[!] Comando '{command}' no reconocido")
 
-#SERVICE = args.service
-#interface = args.interface
-#IP = get_ip(interface)
-#PORT = args.port
-#FILE = args.file
-#USERNAME = args.user
-#PASSWORD = args.password
-#CERTFILE = 'server.crt'  # Ruta al certificado
-#KEYFILE = 'server.key'   # Ruta a la clave privada
-
-        
 
 if __name__ == "__main__":
     interactive_console()
