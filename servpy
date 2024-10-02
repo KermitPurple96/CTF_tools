@@ -547,6 +547,8 @@ def download_linux_exploit_suggester2():
         print(f"Error during download: {e}")
 
 
+def download_incursore():
+    subprocess.run(["wget", "https://raw.githubusercontent.com/wirzka/incursore/main/incursore.sh"], check=True)
 
 
 
@@ -719,6 +721,7 @@ def download_kekeo():
 
 def download_lazagne():
     subprocess.run(["wget", "https://github.com/AlessandroZ/LaZagne/releases/download/v2.4.5/LaZagne.exe"], check=True)
+
 
 def download_mimikatz(arch):
     url = "https://github.com/gentilkiwi/mimikatz/releases/download/2.2.0-20220919/mimikatz_trunk.zip"
@@ -904,6 +907,11 @@ def sccm_hunter():
     subprocess.run(["unzip", "v.1.0.5.zip"], check=True)
     subprocess.run(["rm", "v.1.0.5.zip"], check=True)
 
+
+def recon():
+    download_incursore()
+    download_rpcenum()
+
 def adcs():
     download_adcs()
     download_adcspwn()
@@ -1086,6 +1094,9 @@ def tool(command):
             download_runascs()
         case "runasps1":
             download_runasps1()
+        case "incursore":
+            download_incursore()
+
 
         case _:
             print(f"[!] La herramienta '{tool_name}' no está reconocida.")
@@ -1126,7 +1137,7 @@ def help_tools():
         "adpeas-light", "sharpview", "powerview", "sharphound", "invoke_psexec",
         "password_spray", "ligolo", "poshadcs", "adcspwn",
         "powersccm", "sharpsccm","sharpwmi","sharpup","rubeus","certify",
-        "peas", "seatbelt", "runascs", "runasps1"
+        "peas", "seatbelt", "runascs", "runasps1", "incursore"
 
     ]
 
