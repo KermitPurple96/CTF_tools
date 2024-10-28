@@ -49,6 +49,11 @@ def print_tty():
     print(f"stty raw -echo; fg")
     print(f"export TERM=xterm; reset xterm")
 
+    result = subprocess.run(['stty', 'size'], capture_output=True, text=True)
+    rows, columns = result.stdout.split()
+    print(f"stty rows {rows} columns {columns}")
+
+
     print("\n********** python tty **********\n")
     print(f"""python3 -c 'import pty; pty.spawn("/bin/bash")'""")
 
@@ -768,6 +773,8 @@ def pyfuscate(file, var, par, func, ip, port):
 
 def main(use_macro, use_obfuscate):
 
+    
+
     if len(sys.argv) < 2:
         shellpy_help()
 
@@ -819,7 +826,10 @@ def main(use_macro, use_obfuscate):
                 print("Error: --macro and --obfuscate can only be used with -powercat, -nishang, -powershell, or -conpty.")
                 sys.exit(1)
 
-        
+       
+    print_listener(port)
+    print_tty()
+
     if shell_type == "-powershell":
         print_powershell(ip, port, use_macro, use_obfuscate)
     elif shell_type == "-powercat":
@@ -843,3 +853,4 @@ def main(use_macro, use_obfuscate):
 if __name__ == "__main__":
     
     main(use_macro, use_obfuscate)
+
