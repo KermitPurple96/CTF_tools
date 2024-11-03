@@ -17,7 +17,7 @@ A small set of python tools developed to pass OSCP, this set consists of 3 scrip
 
 1. Download tools
 ```bash
-toolpy -t mimikatz -a x64  
+toolpy -d mimikatz -d rubeus
 ```
 ![image](https://github.com/user-attachments/assets/a9d69157-f2e7-4659-8885-06eb56d6e8b6)
 
