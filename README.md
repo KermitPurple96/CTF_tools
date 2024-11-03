@@ -19,7 +19,8 @@ A small set of python tools developed to pass OSCP, this set consists of 3 scrip
 ```bash
 toolpy -t mimikatz -a x64  
 ```
-![toolpy](https://github.com/user-attachments/assets/048e544d-112a-40a5-972b-59262bc08e64)
+![image](https://github.com/user-attachments/assets/a9d69157-f2e7-4659-8885-06eb56d6e8b6)
+
 
 2. Load the script on Target Machine
 
