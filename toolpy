@@ -664,7 +664,8 @@ funciones_pivoting = [
 funciones_postexploitation = [
     "download_kekeo",
     "download_mimikatz",
-    "download_rubeus"
+    "download_rubeus",
+    "download_lazagne"
 ]
 
 
