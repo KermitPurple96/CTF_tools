@@ -180,6 +180,12 @@ function recon.files(){
     Get-Childitem –Path C:\xampp\ -Include web.config -File -Recurse -ErrorAction SilentlyContinue
     Get-Childitem C:\inetpub\logs\LogFiles\*
     Get-Childitem –Path C:\ -Include access.log,error.log -File -Recurse -ErrorAction SilentlyContinue
+
+    Get-ChildItem -Path "C:\Users" -Recurse -Filter "ConsoleHost_history.txt" -ErrorAction SilentlyContinue | ForEach-Object { 
+        Write-Host "Archivo encontrado en: $($_.FullName)" -ForegroundColor Green
+        Get-Content $_.FullName
+    }
+    
 }
 
 function recon.registry(){
