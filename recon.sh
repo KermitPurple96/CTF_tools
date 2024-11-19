@@ -24,14 +24,25 @@ function recon.help(){
     - recon.pspy                      : Simple process monitor
 
  [*] General recon:
+    - recon.basic                     : Basic information
     - recon.sys                       : System information
     - recon.users                     : Local user information
     - recon.programs                  : Recent installed packages information
     - recon.process                   : Current processes information
+    - recon.procmon                   : List new processes
     - recon.networks                  : Network information
+    - recon.python                    : python path hijacking
+    - recon.files                     : sensitive files
+    - recon.mysql                     : mysql as privileged user
+    - recon.exports                   : NFS privesc
+    - recon.ports                     : internal ports
 
  [*] Privesc recon:
     - priv.setuid                     : Search for SETUID binaries
+    - priv.suid                       : same as setuid but simply
+    - priv.guid                       : GUID binaries
+    - priv.sudo                       : sudo version
+    - priv.sudoers                    : sudoers version
     - priv.capabilities               : Search for present capabilities
     - priv.writable                   : Search for manipulable locations
     - priv.search.fname               : Search files with name passwd 
@@ -78,6 +89,76 @@ function aux.download {
 function recon.dateLast(){
 	find / -type f -mmin -15 -exec ls -la {} \; 2>/dev/null | grep -v proc
 }
+
+function recon.ports(){
+	netstat -nat
+}
+
+
+function recon.basic(){
+  echo "PATH"
+  echo $PATH
+  echo "\n"
+  echo "groups"
+	id
+  echo "\n"
+  echo "bash version"
+  /bin/bash --version
+  echo "Bash versions <4.2-048 vulnerable"
+  echo "\n"
+  echo "kernel version"
+  uname -r
+  echo "linux kernel under 5.8 -> dirty pipe"
+  echo "2.6.22 < 3.9 -> dirty cow"
+  
+}
+
+function priv.sudoers()
+{
+  sudo -l
+}
+
+function recon.files(){
+  ls -l  /etc/shadow
+  echo "writable or readable shadow = vulnerable"
+  ls -l /etc/passwd
+  echo "writable passwd = vulnerable"
+  ls -l /etc/sudoers
+  echo "writable sudoers = vulnerable"
+}
+
+function recon.exports(){
+  cat /etc/exports
+  echo "NFS priv esc"
+}
+
+function recon.mysql ()
+{
+  ps -aux | grep mysql
+  echo "mysql running as privileged user like root"
+}
+
+function recon.python() {
+    # Busca ejecutables de Python en el PATH
+    found=false
+    for python in $(compgen -c | grep -E '^python[0-9\.]*$' | sort -u); do
+        # Comprueba si el comando se puede ejecutar
+        if command -v "$python" > /dev/null 2>&1; then
+            echo -ne "\nFound Python: $python"
+            "$python" -c 'import sys; print(sys.path)'
+            found=true
+        fi
+    done
+
+    if [ "$found" = false ]; then
+        echo "No Python version found."
+        return 1
+    fi
+
+    return 0
+}
+
+
 
 
 #------------------------------------------
@@ -203,6 +284,8 @@ function recon.users {
     echo " ##############################################################"
     echo "                   Active System Users"
     echo " ##############################################################"
+
+    grep "sh" /etc/passwd 
 	while IFS=: read -r username _ uid _ _ hom term; do
     if [ "$uid" -ge 1000 ] && [ "$uid" -ne 65534 ]; then
         echo "   [>] $username \tHome: $hom \tTerm: $term"
@@ -234,6 +317,20 @@ function recon.programs {
 function recon.process {
 	echo ""
 	ps auxf | grep -vE "\[.*\]" | cut -c 1-$(tput cols)
+	echo ""
+}
+
+function recon.procmon {
+	echo ""
+	
+  old_process=$(ps -eo command)
+
+  while true; do
+      new_process=$(ps -eo command)
+      diff <(echo "$old_process") <(echo "$new_process") | grep "[\>\<]" | grep -v -E "procmon|command|kworker"
+      old_process=$new_process
+  done
+
 	echo ""
 }
 
@@ -277,6 +374,20 @@ function recon.pspy() {
 }
 
 
+
+function priv.sudo {
+
+  echo ""
+    echo "##############################################################"
+    echo "                      SETUID Programs"
+    echo "##############################################################"
+  sudo --version
+  echo "versiones 1.8.2, 1.8.31p2 y todas las versiones estables de la 1.9.0 a la 1.9.5p1"
+  echo "https://github.com/teamtopkarl/CVE-2021-3156/tree/main"
+
+
+}
+
 #------------------------------------------
 #  SETUID Programs
 #------------------------------------------
@@ -307,18 +418,25 @@ function priv.setuid {
     echo "##############################################################"
     setuids=$(find / -perm -4000 -type f ! -path "/dev/*" -printf "%T@ %Tc %p\n" 2>/dev/null | sort -n | awk '{$1=""; print $0}')
 	echo "$setuids" | while IFS= read -r line; do
-	  binary_name=$(echo "$line" | awk '{print $NF}' | xargs basename)
-	  out="$line"
-	  for keyword in "${keywords[@]}"; do
-	    if [[ "$binary_name" == "$keyword" ]]; then
-	      out="\033[1;31m$line\033[0m"
-	      break
-	    fi
-	  done
-	  echo -e "$out"
+	 binary_name=$(echo "$line" | awk '{print $NF}' | xargs basename)
+	 out="$line"
+	 for keyword in "${keywords[@]}"; do
+	   if [[ "$binary_name" == "$keyword" ]]; then
+	     out="\033[1;31m$line\033[0m"
+	     break
+	   fi
+	 done
+	 echo -e "$out"
 	done
 	}
 
+function priv.suid {
+  find / -perm -4000 -exec ls -l {} \; 2> /dev/null
+}
+
+function priv.guid {
+  find / -perm -2000 -exec ls -l {} \; 2> /dev/null
+}
 
 #------------------------------------------
 #      Programs with Capabilities
@@ -453,3 +571,5 @@ alias ll='ls -lh --group-dirs=first --color=auto'
 
 check_ip_kali
 recon.help
+
+
