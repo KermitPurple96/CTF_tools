@@ -8,6 +8,9 @@ import sys
 import platform
 
 
+
+
+
 # linux privesc
 
 
@@ -65,10 +68,15 @@ def download_private():
     subprocess.run(["wget","https://raw.githubusercontent.com/rtcrowley/linux-private-i/refs/heads/master/private-i.sh"], check=True)
 
 def download_htbenum():
-    subprocess.run(["wget","https://raw.githubusercontent.com/SolomonSklash/htbenum/refs/heads/master/htbenum.sh"], check=True)
+    subprocess.run(["git","clone","https://github.com/SolomonSklash/htbenum"], check=True)
 
     
+    
+
+
+
 # postexploitation
+
 
 
 def download_kekeo():
@@ -110,6 +118,7 @@ def download_mimikatz(arch):
         print(f"Error during download or extraction: {e}")
     except FileNotFoundError as e:
         print(f"File not found error: {e}")
+
 
 
 # Pivoting
@@ -183,8 +192,13 @@ def download_socat(platform, arch):
         print(f"Error during download or extraction: {e}")
 
 
+
 # windows privesc
 
+
+def download_accesschk():
+    subprocess.run(["wget", "https://download.sysinternals.com/files/AccessChk.zip"], check=True)
+    subprocess.run(["unzip", "AccessChk.zip"], check=True)
 
 def download_sharpup():
     subprocess.run(["wget", "https://github.com/r3motecontrol/Ghostpack-CompiledBinaries/raw/master/SharpUp.exe"], check=True)
@@ -248,6 +262,10 @@ def download_peas(platform, arch):
             print("Unsupported platform specified.")
             return
 
+def download_juicypotato():
+    subprocess.run(["wget", "https://github.com/antonioCoco/JuicyPotatoNG/releases/download/v1.1/JuicyPotatoNG.zip"], check=True)
+    subprocess.run(["unzip", "JuicyPotatoNG.zip"], check=True)
+    subprocess.run(["rm", "JuicyPotatoNG.zip"], check=True)
 
 
 # ADCS
@@ -273,6 +291,7 @@ def download_adcspwn():
 
 def download_adcskiller():
     subprocess.run(["git", "clone", "https://github.com/grimlockx/ADCSKiller"], check=True)
+
 
 
 
@@ -305,10 +324,12 @@ def download_sysinternals():
 def download_sharpcollection():
     subprocess.run(["git", "clone", "https://github.com/Flangvik/SharpCollection"], check=True)
 
-def download_nc_exe():
+def download_netcat():
     subprocess.run(["wget", "https://eternallybored.org/misc/netcat/netcat-win32-1.12.zip"], check=True)
     subprocess.run(["unzip", "netcat-win32-1.12.zip"], check=True)
     subprocess.run(["rm", "netcat-win32-1.12.zip"], check=True)
+
+
 
 def download_invoke_psexec():
     subprocess.run(["wget", "https://raw.githubusercontent.com/HarmJ0y/Misc-PowerShell/master/Invoke-PsExec.ps1"], check=True)
@@ -333,6 +354,7 @@ def download_invoke_thehash():
 
 
 # AD recon
+
 
 
 
@@ -468,6 +490,8 @@ def download_impacket(platform, arch):
 
 
 
+
+
 # SCCM
 
 
@@ -507,7 +531,7 @@ def windows(platform, arch):
     download_maz_windows_binaries()
     download_sysinternals()
     download_sharpcollection()
-    download_nc_exe()
+    download_netcat()
     download_invoke_psexec()
     download_invoke_conptyshell()
     download_conptyshell_exe()
@@ -551,6 +575,8 @@ def privesc(platform, arch):
         download_moriarty()
         download_privesccheck()
         download_powerup()
+        download_accesschk()
+        download_juicypotato()
 
     elif platform == "linux":
 
@@ -564,6 +590,8 @@ def privesc(platform, arch):
         download_htbenum()
         
     
+
+
 def pivoting(platform, arch):
     download_ligolo(platform,arch)
     download_socat(platform,arch)
@@ -576,96 +604,99 @@ def postexploitation(platform, arch):
     download_rubeus()
 
 
+
 # Help
+
 
 
 # Definición de listas de herramientas
 funciones_adcs = [
-    "download_certipy",
-    "download_certify",
-    "download_poshadcs",
-    "download_adcspwn",
-    "download_adcskiller"
+    "certipy",
+    "certify",
+    "poshadcs",
+    "adcspwn",
+    "adcskiller"
 ]
 
 funciones_sccm = [
-    "download_powersccm",
-    "download_sharpsccm",
-    "sccm_hunter"
+    "powersccm",
+    "sharpsccm",
+    "hunter"
 ]
 
 funciones_windows = [
-    "download_runascs",
-    "download_runasps1",
-    "download_sharpwmi",
-    "download_maz_windows_binaries",
-    "download_sysinternals",
-    "download_sharpcollection",
-    "download_nc_exe",
-    "download_invoke_psexec",
-    "download_invoke_conptyshell",
-    "download_conptyshell_exe",
-    "download_powercat",
-    "download_nishang",
-    "download_invoke_thehash"
+    "runascs",
+    "runasps1",
+    "sharpwmi",
+    "maz_windows_binaries",
+    "sysinternals",
+    "sharpcollection",
+    "netcat",
+    "invoke_psexec",
+    "invoke_conptyshell",
+    "conptyshell_exe",
+    "powercat",
+    "nishang",
+    "invoke_thehash"
 ]
 
 funciones_adrecon = [
-    "download_rpcenum",
-    "download_pywerview",
-    "download_adpeas",
-    "download_adpeas_light",
-    "download_sharpview",
-    "download_powerview",
-    "download_sharphound",
-    "download_dnstools"
+    "rpcenum",
+    "pywerview",
+    "adpeas",
+    "adpeas_light",
+    "sharpview",
+    "powerview",
+    "sharphound",
+    "dnstools"
 ]
 
 funciones_ad = [
-    "download_standin",
-    "download_sprying",
-    "download_domain_password_spray",
-    "download_powersharppack",
-    "download_powerupsql",
-    "download_kerbrute",
-    "download_impacket"
+    "standin",
+    "sprying",
+    "domain_password_spray",
+    "powersharppack",
+    "powerupsql",
+    "kerbrute",
+    "impacket",
+    "rubeus"
 ]
 
 
 funciones_privesc_windows = [
-    "download_sharpup",
-    "download_seatbelt",
-    "download_windows_exploit_suggester",
-    "download_jaws_enum",
-    "download_powerless",
-    "download_sherlock",
-    "download_moriarty",
-    "download_privesccheck",
-    "download_powerup"
+    "sharpup",
+    "seatbelt",
+    "windows_exploit_suggester",
+    "jaws_enum",
+    "powerless",
+    "sherlock",
+    "moriarty",
+    "privesccheck",
+    "powerup",
+    "accesschk",
+    "juicypotato"
 ]
 
 funciones_privesc_linux = [
-    "download_linenum",
-    "download_linuxprivchecker",
-    "download_linux_exploit_suggester",
-    "download_linux_exploit_suggester2",
-    "download_lse",
-    "download_bashark",
-    "download_private",
-    "download_htbenum"
+    "linenum",
+    "linuxprivchecker",
+    "linux_exploit_suggester",
+    "linux_exploit_suggester2",
+    "lse",
+    "bashark",
+    "private",
+    "htbenum"
 ]
 
 funciones_pivoting = [
-    "download_ligolo",
-    "download_socat",
-    "download_chisel"
+    "ligolo",
+    "socat",
+    "chisel"
 ]
 
 funciones_postexploitation = [
-    "download_kekeo",
-    "download_mimikatz",
-    "download_rubeus",
-    "download_lazagne"
+    "kekeo",
+    "mimikatz",
 ]
 
 
@@ -824,8 +855,8 @@ def main():
                 download_sysinternals()
             case "sharpcollection":
                 download_sharpcollection()
-            case "nc_exe":
-                download_nc_exe(system, arch)
+            case "netcat":
+                download_netcat()
             case "powersharppack":
                 download_powersharppack()
             case "powerupsql":
@@ -910,8 +941,13 @@ def main():
                 download_linux_exploit_suggester()
             case "moriarty":
                 download_moriarty()
-            case"standin":
+            case "standin":
                 download_standin()
+            case "accesschk":
+                download_accesschk()
+            case "juicypotato":
+                download_juicypotato()
+
             case _:
                 print(f"[!] La herramienta '{tool_name}' no está reconocida.")
 
@@ -924,3 +960,6 @@ def main():
 if __name__ == "__main__":
     main()
     sys.exit(0)
+
+
+
