@@ -129,10 +129,12 @@ def download_ligolo(platform, arch):
     if platform == "windows":
         subprocess.run(["wget", "https://github.com/nicocha30/ligolo-ng/releases/download/v0.7.1-alpha/ligolo-ng_proxy_0.7.1-alpha_windows_amd64.zip"], check=True)
         subprocess.run(["wget", "https://github.com/nicocha30/ligolo-ng/releases/download/v0.7.1-alpha/ligolo-ng_agent_0.7.1-alpha_windows_amd64.zip"], check=True)
+        subprocess.run(["tar", "xvzf", "ligolo*"], check=True)
 
     elif platform == "linux":
         subprocess.run(["wget", "https://github.com/nicocha30/ligolo-ng/releases/download/v0.7.1-alpha/ligolo-ng_proxy_0.7.1-alpha_linux_amd64.tar.gz"], check=True)
         subprocess.run(["wget", "https://github.com/nicocha30/ligolo-ng/releases/download/v0.7.1-alpha/ligolo-ng_agent_0.7.1-alpha_linux_amd64.tar.gz"], check=True)
+        subprocess.run(["tar", "xvzf", "ligolo*"], check=True)
 
 def download_chisel(platform, arch):
     
