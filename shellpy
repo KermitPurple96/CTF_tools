@@ -38,6 +38,8 @@ def print_listener(port):
 
     print("\n********** Connectivity **********\n")
     print("tcpdump -i tun0 icmp -n")
+    print(f"tshark -i tun0 -f 'tcp dst port {port}' -Y 'ip.dst == {ip}'")
+
     print("\n********** Listener **********\n")
     print(f"stty raw -echo; (stty size; cat) | nc -lvnp {port}")
     print(f"rlwrap -cAr nc -nlvp {port}")
