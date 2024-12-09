@@ -47,6 +47,10 @@ function recon.help
     Write-Host ''
     Write-Host '[*] Auxiliary Recon:'
     Write-Host '    - recon.ports                     : Internal ports enumeration'
+    Write-Host '    - recon.services                  : Search for sensitive services files Ej: recon.services -Path "C:\xampp"'
+    Write-Host '    - recon.recent                    : Recently used files'
+    Write-Host '    - recon.certs                     : Certificates'
+    Write-Host '    - recon.sticky                    : Sticky notes'
     Write-Host '    - recon.basics                    : Basic system information'
     Write-Host '    - recon.files                     : Sensitive file discovery'
     Write-Host '    - recon.registry                  : Registry reconnaissance'
@@ -174,7 +178,7 @@ function recon.basics(){
 
 function recon.files(){
 
-    Get-ChildItem -Path C:\Users\ -Include *.txt,*.ini,*.exe,*.dll,*.sys,*.msi -File -Recurse -ErrorAction SilentlyContinue
+    gci -Path C:\Users\ -Include *.ini,*.txt,*.bat,*.cmd,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.yml,*.exe,*.ps1,*.cfg,*.json,*.sql,*.sqlite,*.sqlite3,*.db,*.mdb,*.accdb,*.ldf,*.mdf,*.bak,*.dat,*.nsf,*.dbf,*.log,*.crt,*.key,*.pem,*.pfx,*.pwd,*.rdp -File -Recurse -ErrorAction SilentlyContinue
     gci -Path C:\ -Include *.kdbx,*.pdf,*.xls,*.xlsx,*.doc,*.docx -File -Recurse -ErrorAction SilentlyContinue
     Get-Childitem –Path C:\inetpub\ -Include web.config -File -Recurse -ErrorAction SilentlyContinue
     Get-Childitem –Path C:\xampp\ -Include web.config -File -Recurse -ErrorAction SilentlyContinue
@@ -187,6 +191,102 @@ function recon.files(){
     }
 
 }
+
+function recon.services {
+    param (
+        [string]$Path
+    )
+
+    Get-ChildItem -Path $Path -Recurse -Force -ErrorAction SilentlyContinue -Include *.config,*.ini,*.json,*.xml,*.yml,*.env,*.sql,*.sqlite,*.sqlite3,*.db,*.mdb,*.accdb,*.ldf,*.mdf,*.bak,*.dat,*.nsf,*.dbf,*.log,*.crt,*.key,*.pem,*.pfx,*.pwd,*.rdp,*.ps1,*.bat,*.cmd,*.txt |
+    ForEach-Object {
+        [PSCustomObject]@{
+            FilePath = $_.FullName
+            Size     = $_.Length
+            LastModified = $_.LastWriteTime
+        }
+    } | Format-Table -AutoSize
+}
+
+
+function recon.certs {
+
+    gci cert:\currentuser\my -verbose
+    net start | findstr /i cert
+    certutil -catemplates
+
+}
+
+
+function recon.recent {
+    # Define el directorio base de archivos recientes para todos los usuarios
+    $recentFolders = Get-ChildItem -Path "C:\Users" -Directory -ErrorAction SilentlyContinue | 
+                     ForEach-Object { Join-Path $_.FullName "AppData\Roaming\Microsoft\Windows\Recent" }
+
+    # Verificar si se encontraron directorios válidos
+    if (-Not $recentFolders) {
+        Write-Host "No se encontraron carpetas de archivos recientes." -ForegroundColor Yellow
+        return
+    }
+
+    # Procesar cada carpeta de archivos recientes
+    foreach ($folder in $recentFolders) {
+        if (Test-Path $folder) {
+            Write-Host "`nBuscando en: $folder" -ForegroundColor Cyan
+
+            # Buscar archivos recientes que puedan contener información sensible
+            Get-ChildItem -Path $folder -Recurse -Force -ErrorAction SilentlyContinue -Include *.lnk,*.txt,*.doc,*.docx,*.xlsx,*.pdf,*.log,*.config,*.ini,*.sql |
+            ForEach-Object {
+                [PSCustomObject]@{
+                    FilePath     = $_.FullName
+                    FileName     = $_.Name
+                    Size         = $_.Length
+                    LastAccessed = $_.LastAccessTime
+                }
+            } | Format-Table -AutoSize
+        }
+    }
+}
+
+
+
+function recon.sticky {
+    # Define el directorio base para Sticky Notes en todos los usuarios
+    $stickyFolders = Get-ChildItem -Path "C:\Users" -Directory -ErrorAction SilentlyContinue | 
+                     ForEach-Object { Join-Path $_.FullName "AppData\Local\Packages\Microsoft.MicrosoftStickyNotes_8wekyb3d8bbwe\LocalState" }
+
+    # Verificar si se encontraron directorios válidos
+    if (-Not $stickyFolders) {
+        Write-Host "No se encontraron carpetas de Sticky Notes." -ForegroundColor Yellow
+        return
+    }
+
+    # Procesar cada carpeta de Sticky Notes
+    foreach ($folder in $stickyFolders) {
+        if (Test-Path $folder) {
+            Write-Host "`nAnalizando: $folder" -ForegroundColor Cyan
+
+            # Buscar archivos relevantes en la carpeta
+            Get-ChildItem -Path $folder -Recurse -Force -ErrorAction SilentlyContinue -Include *.sqlite,*.json,*.log,*.bak |
+            ForEach-Object {
+                Write-Host "`nContenido de: $($_.FullName)" -ForegroundColor Green
+
+                # Analizar los archivos SQLite y otros relevantes
+                if ($_.Extension -eq ".sqlite") {
+                    Write-Host "Archivo SQLite encontrado: $($_.FullName)" -ForegroundColor Magenta
+                } else {
+                    Get-Content $_.FullName | Format-Hex
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
 
 function recon.registry(){
     Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon' | select "Default*"
@@ -1202,6 +1302,10 @@ function Get-LogonSessionProcesses
 }
 
 
+
+
+
+
 function Banner {
     $banner = @'
 
@@ -1231,6 +1335,4 @@ if ($IP_KALI -match "IP_KALI") {
     Write-Host ""
 }
 recon.help
-
-
 
