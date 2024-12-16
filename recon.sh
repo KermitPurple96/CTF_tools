@@ -15,6 +15,9 @@ function recon.help(){
     - aux.upload [file]               : Send files to http server via post
     - aux.download [file]             : Perform GET to fetch files
 
+ [*] Environment fix:
+    - env.fix                       : fixes env PATH
+
  [*] Auxiliary recon:
     - recon.dateScan                  : Files modified between two dates
     - recon.dateLast                  : Files modified less than 15min ago
@@ -48,11 +51,14 @@ function recon.help(){
     - priv.search.fname               : Search files with name passwd 
     - priv.search.fcontent            : Search files with passwd content
     - priv.search.sshkeys             : Search potential ssh files
-    - priv.crontabs                   : Search for crontabs 
+    - priv.crontabs                   : Search for crontabs
+    - priv.mysql                      : MySQL Ver 14.14 running as root
     """
 }
 
-
+function priv.mysql {
+  ps -aux | grep -i "sql"
+}
 
 #------------------------------------------
 #  *   Upload files via http POST  *
@@ -66,6 +72,17 @@ function aux.upload {
 	fi
     filename=$(basename "$1")
     wget --post-file=$1 -O /dev/null --header="Content-Disposition: attachment; filename="$filename $IP_KALI 
+}
+
+function env.fix {
+
+  env reset
+  stty onlcr
+  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games:/root/.local/bin:/usr/share:/snap/bin:/usr/sandbox:/usr/local/go/bin:/usr/share/games:/opt:/root/go/bin:/opt/bin:/opt/local/bin:/opt/tools:$HOME/bin:$HOME/.local/bin:$HOME/scripts:/var/www/html/scripts:/usr/libexec:/etc/custom/scripts:/mnt/shared/scripts
+  export TERM=xterm-256color
+  reset xterm
+
+
 }
 
 
@@ -418,15 +435,15 @@ function priv.setuid {
     echo "##############################################################"
     setuids=$(find / -perm -4000 -type f ! -path "/dev/*" -printf "%T@ %Tc %p\n" 2>/dev/null | sort -n | awk '{$1=""; print $0}')
 	echo "$setuids" | while IFS= read -r line; do
-	 binary_name=$(echo "$line" | awk '{print $NF}' | xargs basename)
-	 out="$line"
-	 for keyword in "${keywords[@]}"; do
-	   if [[ "$binary_name" == "$keyword" ]]; then
-	     out="\033[1;31m$line\033[0m"
-	     break
-	   fi
-	 done
-	 echo -e "$out"
+	binary_name=$(echo "$line" | awk '{print $NF}' | xargs basename)
+	out="$line"
+	for keyword in "${keywords[@]}"; do
+	  if [[ "$binary_name" == "$keyword" ]]; then
+	    out="\033[1;31m$line\033[0m"
+	    break
+	  fi
+	done
+	echo -e "$out"
 	done
 	}
 
