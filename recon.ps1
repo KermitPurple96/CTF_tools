@@ -47,6 +47,7 @@ function recon.help
     Write-Host ''
     Write-Host '[*] Auxiliary Recon:'
     Write-Host '    - recon.ports                     : Internal ports enumeration'
+    Write-Host '    - recon.shres                     : SMB shares'
     Write-Host '    - recon.services                  : Search for sensitive services files Ej: recon.services -Path "C:\xampp"'
     Write-Host '    - recon.recent                    : Recently used files'
     Write-Host '    - recon.certs                     : Certificates'
@@ -174,6 +175,11 @@ function recon.basics(){
     net share
     Get-PSDrive
 }
+
+function recon.shares(){
+    Gwmi Win32_Share|%{"\\$($_|% P*e)\$($_.Name)"}
+}
+
 
 
 function recon.files(){
@@ -1335,4 +1341,5 @@ if ($IP_KALI -match "IP_KALI") {
     Write-Host ""
 }
 recon.help
+
 
