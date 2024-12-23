@@ -34,7 +34,7 @@ lower_Reserverd = []
 current_dir = os.path.dirname(os.path.abspath(__file__))
 wordList = os.path.join(current_dir, 'wordList.txt')
 
-def print_listener(port):
+def print_listener(ip, port):
 
     print("\n********** Connectivity **********\n")
     print("tcpdump -i tun0 icmp -n")
@@ -829,7 +829,7 @@ def main(use_macro, use_obfuscate):
                 sys.exit(1)
 
        
-    print_listener(port)
+    print_listener(ip, port)
     print_tty()
 
     if shell_type == "-powershell":
