@@ -855,4 +855,3 @@ def main(use_macro, use_obfuscate):
 if __name__ == "__main__":
     
     main(use_macro, use_obfuscate)
-
