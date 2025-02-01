@@ -910,9 +910,9 @@ function priv.writable {
 function priv.search.fname {
 	echo ""
     echo "##############################################################"
-    echo "               Files with 'passw' on name"
+    echo "               Files with 'passw' or 'config' on name"
     echo "##############################################################"
-    find . -type f \( -name "*.config" -o -name "*.conf" -o -name "*passw*" \)  -printf "%T@ %Tc %p\n" 2>/dev/null | sort -n | awk '{$1=""; print $0}'
+    find . -type f \( -name "*config*" -o -name "*passw*" \)  -printf "%T@ %Tc %p\n" 2>/dev/null | sort -n | awk '{$1=""; print $0}'
 }
 
 
