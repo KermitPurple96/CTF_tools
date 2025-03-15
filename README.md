@@ -1,6 +1,6 @@
-# OSCP python support tools
+# CTF support tools
 
-A small set of python tools developed to pass OSCP, this set consists of 3 scripts:
+A small set of python tools developed to help resolve ctfs and pass certifications
 
 - toolpy to download tools
 - Shellpy to generate payloads for reverse shells, optionally obfuscated to evade antivirus and in macro format for malicious documents
