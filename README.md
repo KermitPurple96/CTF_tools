@@ -11,9 +11,9 @@ A small set of python tools developed to help resolve ctfs and pass certificatio
 - recon.sh to assist in the linux privilege escalation process
 
 ## Install
-
-- git clone --branch fusion --single-branch https://github.com/KermitPurple96/CTF_tools.git
-
+```bash
+git clone --branch fusion --single-branch https://github.com/KermitPurple96/CTF_tools.git
+```
 ## Usage
 
 1. toolpy
