@@ -29,7 +29,7 @@ shellpy <ip> <port> -powercat --obfuscate --macro
 ![shell3](https://github.com/user-attachments/assets/9bb1efe9-bcaa-49b8-b99b-b865b758eefe)
 3. Shell listener
 ```bash
-shellListener <port>
+listener <port>
 ```
 ![image](https://github.com/user-attachments/assets/9863b3e7-6d33-4ce4-8974-f2a598920f9c)
 
