@@ -18,7 +18,7 @@ import string
 import configparser
 import fileinput
 import banner
-
+import urllib.parse
 
 # --macro payload number of chars per line
 chunk_size=32
@@ -68,6 +68,8 @@ def print_tty():
 
 
 
+def urlencode(text):
+    return urllib.parse.quote_plus(text)
 
 
 
