@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from pwn import *
 import sys
 import os
@@ -120,6 +122,18 @@ def start_listener(port):
                 if cmd.lower() == "exit":
                     log.info("Cerrando conexión...")
                     break
+
+                elif cmd.startswith("help"):
+                    print("\nUso de comandos disponibles:")
+                    print("  upload <ruta_local>   - Sube un archivo a la máquina remota.")
+                    print("  download <ruta_remota> - Descarga un archivo desde la máquina remota.")
+                    print("  exit                   - Cierra la conexión de la shell.")
+                    print("  clear                  - Limpia la pantalla del terminal.")
+                    print("  sudo <comando>         - Ejecuta un comando como superusuario.")
+                    print("\nEjemplo:")
+                    print("  upload /home/user/file.txt")
+                    print("  download /tmp/secreto.txt")
+                    continue
 
                 elif cmd.startswith("download "):
                     file_path = cmd.split(" ", 1)[1]
