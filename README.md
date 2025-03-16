@@ -12,7 +12,7 @@ A small set of python tools developed to help resolve ctfs and pass certificatio
 
 ## Install
 ```bash
-git clone --branch fusion --single-branch https://github.com/KermitPurple96/CTF_tools.git
+git clone https://github.com/KermitPurple96/CTF_tools
 ```
 ## Usage
 
